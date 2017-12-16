@@ -39,6 +39,7 @@ function CreateToken(req: express.Request, res: express.Response, next: express.
     .then((token) => {
         res.send({ token })
     })
+    .catch(err => res.send400(err.message))
 }
 
 const registrationSpecs = {
@@ -106,6 +107,7 @@ function SendSMS(req: express.Request, res: express.Response, next: express.Next
             temp: response
         })
     })
+    .catch(err => res.send400(err.message))
 }
 
 const setPassSpecs = {
