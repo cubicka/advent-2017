@@ -1,6 +1,7 @@
 import Bluebird from 'bluebird'
 import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
+import Buyers, { Buyer } from '../model/buyer'
 import Sellers, { Seller } from '../model/seller'
 import Users, { User, UserType } from '../model/user'
 import { Omit } from '../util/type'
@@ -55,6 +56,16 @@ function CalculateSaltHash(password: string) {
     return { hash, salt }
 }
 
+function RegisterBuyer(login: Login, buyer: Omit<Buyer, 'userID'>): Bluebird<Buyer> {
+    const { hash, salt } = CalculateSaltHash(login.password)
+    return Buyers.CreateBuyer(buyer, {
+        hash,
+        salt,
+        username: login.username,
+        type: UserType.buyer,
+    })
+}
+
 function RegisterSeller(login: Login, seller: Omit<Seller, 'userID'>): Bluebird<Seller> {
     const { hash, salt } = CalculateSaltHash(login.password)
     return Sellers.CreateSeller(seller, {
@@ -74,6 +85,7 @@ export default {
     AuthenticateLogin,
     ChangePassword,
     CreateToken,
+    RegisterBuyer,
     RegisterSeller,
 }
 

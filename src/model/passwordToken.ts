@@ -2,7 +2,7 @@ import Bluebird from 'bluebird'
 
 import { getRandomIntInclusive } from '../util/num'
 
-import { ORM } from './index'
+import { ORM, Table } from './index'
 
 export interface PasswordToken {
     token: string;
@@ -10,7 +10,7 @@ export interface PasswordToken {
     userID: string;
 }
 
-const FetchPasswordToken = ORM.Fetch<PasswordToken>('password_token')
+const FetchPasswordToken = ORM.Fetch<PasswordToken>(Table.passwordToken)
 
 export function GetByToken(token: string): Bluebird<PasswordToken[]> {
     return FetchPasswordToken([

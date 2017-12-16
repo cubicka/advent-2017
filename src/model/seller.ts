@@ -2,7 +2,7 @@ import Bluebird from 'bluebird'
 
 import { Omit } from '../util/type'
 
-import { ORM } from './index'
+import { ORM, Table } from './index'
 import { CreateUser, User, UserType } from './user'
 
 export interface Seller {
@@ -25,8 +25,8 @@ export interface Seller {
     userID: string;
 }
 
-const FetchSellers = ORM.Fetch<Seller>('seller_details')
-const FetchUsersSellers = ORM.FetchJoin<User, Seller>('users', 'seller_details', 'seller_details.userID', 'users.id')
+const FetchSellers = ORM.Fetch<Seller>(Table.seller)
+const FetchUsersSellers = ORM.FetchJoin<User, Seller>(Table.users, Table.seller, 'seller_details.userID', 'users.id')
 
 function CreateSeller(seller: Omit<Seller, 'userID'>, userData: Omit<User, 'id'>): Bluebird<Seller> {
     return CreateUser(userData)

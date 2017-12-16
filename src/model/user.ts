@@ -2,7 +2,7 @@ import Bluebird from 'bluebird'
 
 import { Omit } from '../util/type'
 
-import { ORM } from './index'
+import { ORM, Table } from './index'
 
 export enum UserType {
     admin = 'admin',
@@ -10,25 +10,6 @@ export enum UserType {
     buyer = 'buyer',
     seller = 'seller',
 }
-
-// interface Buyer {
-//     address: string;
-//     cityID: string;
-//     ktp?: string;
-//     latitude?: string;
-//     longitude?: string;
-//     name: string;
-//     phone: string;
-//     profilePicture?: string;
-//     selfie?: string;
-//     shop: string;
-//     signature?: string;
-//     stateID: string;
-//     userID: string;
-//     verification?: string;
-//     wsrange?: string;
-//     zipcode?: string;
-// }
 
 export interface User {
     hash: string;
@@ -39,16 +20,15 @@ export interface User {
     type: UserType;
     username: string;
     updated_at?: string;
-    verified?: string;
+    verified?: boolean;
 }
 
-// const ActualizeBuyer = ORM.Actualize<Buyer>('buyer_details')
-export const FetchUsers = ORM.Fetch<User>('users')
+export const FetchUsers = ORM.Fetch<User>(Table.users)
 
 export function CreateUser(user: Omit<User,'id'>): Bluebird<User> {
     return FetchUsers([ ORM.FilterBy({ username: user.username }) ])
     .then(users => {
-        if (users.length > 0) throw new Error('User telah terdaftar')
+        if (users.length > 0 && users.some(user => user.verified === true)) throw new Error('User telah terdaftar')
 
         return FetchUsers([
             ORM.Insert({ ...user }, ['id'])

@@ -59,6 +59,11 @@ export function IsNumber(x: number): boolean {
     return (typeof x === "number") && !isNaN(x)
 }
 
+export function IsParseDate(s: string): boolean {
+    const d = new Date(s)
+    return (Object.prototype.toString.call(d) === "[object Date]") && !(isNaN(d.getTime()))
+}
+
 export function IsParseNumber(x: string): boolean {
     if (typeof x === "string") {
         return IsNumber(parseFloat(x))
@@ -67,9 +72,9 @@ export function IsParseNumber(x: string): boolean {
     return IsNumber(x)
 }
 
-export function IsParseDate(s: string): boolean {
-    const d = new Date(s)
-    return (Object.prototype.toString.call(d) === "[object Date]") && !(isNaN(d.getTime()))
+export function IsPhone(phone: string) {
+    var regexPhone = /^[+]?([\d]{3}(-| )?[\d]{3}(-| )?[\d]{4}|[\d]{5,12}|}|[(][\d]{3}[)](-| )?[\d]{3}(-| )?[\d]{4})$/;
+    return IsString(phone) && regexPhone.test(phone)
 }
 
 export function IsString(s: string): boolean {
@@ -89,11 +94,6 @@ export function Middleware(specs: any) {
 
 // export function IsNull(x) {
 //     return x === null
-// }
-
-// export function IsPhone(phone) {
-//     var regexPhone = /^[+]?([\d]{3}(-| )?[\d]{3}(-| )?[\d]{4}|[\d]{5,12}|}|[(][\d]{3}[)](-| )?[\d]{3}(-| )?[\d]{4})$/;
-//     return IsString(phone) && regexPhone.test(phone)
 // }
 
 // export function IsBool(x) {

@@ -8,6 +8,14 @@ var pg = knex({
     connection: config.dbConnection,
 })
 
+export enum Table {
+    buyer = 'buyer_details',
+    deliveryOptions = 'delivery_options',
+    passwordToken = 'password_token',
+    seller = 'seller_details',
+    users = 'users',
+}
+
 export type BuilderFn = (builder: knex.QueryBuilder) => knex.QueryBuilder;
 type knexValue = boolean | Date | null | string
 

@@ -1,26 +1,28 @@
-import Bluebird from 'bluebird'
 import express from 'express'
 
 import PasswordTokens from '../../model/passwordToken'
-import Sellers from '../../model/seller'
-import { UserType } from '../../model/user'
+import Users, { UserType } from '../../model/user'
 import Auth from '../../service/auth'
 import SMS from '../../service/sms'
 import { ProjectObj } from '../../util/obj'
 import * as Phone from '../../util/phone'
-import { ComposeOr, IsParseDate, IsParseNumber, IsString, Middleware} from '../../util/validation'
+import {IsParseNumber, IsString, IsPhone, Middleware} from '../../util/validation'
 
 const signInSpecs = {
     body: {
         username: IsString,
         password: IsString,
+        udid: IsString,
     }
 }
 
 function SignIn(req: express.Request, res: express.Response, next: express.NextFunction) {
-    return Auth.AuthenticateLogin(req.body)
-    .then(user => {
-        if (user.type !== UserType.seller) throw new Error('Autentikasi gagal.')
+    const username = Phone.Normalize(req.body.username)
+    return Auth.AuthenticateLogin({username, password: req.body.password})
+    .then((user) => {
+        if (user.type !== UserType.buyer) {
+            return res.send403('Autentikasi gagal')
+        }
 
         req.kulakan.userID = user.id
         next()
@@ -30,62 +32,55 @@ function SignIn(req: express.Request, res: express.Response, next: express.NextF
 
 function CreateToken(req: express.Request, res: express.Response, next: express.NextFunction) {
     const userID = req.kulakan.userID
-    return Auth.CreateToken(userID)
+    return Auth.CreateToken(userID, req.body.udid)
     .then((token) => {
         res.send({token})
     })
-    .catch(err => res.send400(err.message))
+    .then((token) => {
+        res.send({ token })
+    })
 }
 
 const registrationSpecs = {
     body: {
-        username: IsString,
         password: IsString,
         name: IsString,
-        ktp: IsString,
         shop: IsString,
-        phone: IsString,
         address: IsString,
+        zipcode: IsString,
+        phone: IsString,
         stateID: IsParseNumber,
         cityID: IsParseNumber,
-        birth: IsParseDate,
-        bankAccountNumber: IsString,
-        bankAccountName: IsString,
-        bankID: IsString,
-        bankBranch: IsString,
     }
 }
 
 function Register(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const seller = ProjectObj(req.body, ['name', 'ktp', 'shop', 'address', 'phone', 'stateID', 'cityID', 'birth', 'bankAccountNumber', 'bankAccountName', 'bankID', 'bankBranch'])
+    const {password} = req.body
+    let buyer = ProjectObj(req.body, ['name', 'shop', 'address', 'phone', 'stateID', 'cityID', 'zipcode'])
+    buyer.phone = Phone.Normalize(buyer.phone)
 
-    seller.phone = Phone.Normalize(seller.phone)
-
-    return Auth.RegisterSeller(req.body, seller)
-    .then(() => res.send({ status: 'User sukses didaftar' }))
+    return Auth.RegisterBuyer({ password, username: buyer.phone }, buyer)
+    .then(buyer => {
+        req.kulakan.userID = buyer.userID
+        next()
+    })
     .catch(err => res.send400(err.message))
 }
 
 const forgotPassSpecs = {
-    body: ComposeOr(
-        {
-            username: IsString,
-        },
-        {
-            phone: IsString,
-        },
-    )
+    body: {
+        phone: IsPhone,
+    }
 }
 
-function SellerByNameOrPhone(req: express.Request, res: express.Response, next: express.NextFunction) {
-    return Bluebird.try(() => {
-        if (req.body.username !== undefined) {
-            return Sellers.GetByUsername(req.body.username)
+function UserByPhone(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const phone = Phone.Normalize(req.body.phone)
+    return Users.GetByUsername(phone)
+    .then(users => {
+        if (users.length === 0 || users[0].type !== UserType.buyer) {
+            throw new Error('User tidak ditemukan')
         }
 
-        return Sellers.GetByPhone(Phone.Normalize(req.body.phone))
-    })
-    .then(users => {
         req.kulakan.user = users[0]
         next()
     })
@@ -104,14 +99,13 @@ function ForgotPassword(req: express.Request, res: express.Response, next: expre
 
 function SendSMS(req: express.Request, res: express.Response, next: express.NextFunction) {
     const { token, user } = req.kulakan
-    return SMS(Phone.Normalize(user.phone), 'kode verifikasi penggantian password: ' + token.toString())
+    return SMS(user.username, 'kode verifikasi penggantian password: ' + token.toString())
     .then((response) => {
         res.send({
             status: 'verification code is sent',
             temp: response
         })
     })
-    .catch(err => res.send400(err.message))
 }
 
 const setPassSpecs = {
@@ -145,8 +139,8 @@ function ChangePassByToken(req: express.Request, res: express.Response, next: ex
 export default {
     post: [
         ['/sign-in', Middleware(signInSpecs), SignIn, CreateToken],
-        ['/register', Middleware(registrationSpecs), Register],
-        ['/forgot-password', Middleware(forgotPassSpecs), SellerByNameOrPhone, ForgotPassword, SendSMS],
-        ['/set-password', Middleware(setPassSpecs), ValidateToken, ChangePassByToken],
+        ['/register', Middleware(registrationSpecs), Register, CreateToken],
+        ['/forgot-password', Middleware(forgotPassSpecs), UserByPhone, ForgotPassword, SendSMS],
+        ['/set-password', Middleware(setPassSpecs), ValidateToken, ChangePassByToken]
     ]
 }

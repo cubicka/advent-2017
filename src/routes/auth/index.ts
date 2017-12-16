@@ -1,3 +1,3 @@
 export default {
-    use: ['/ws'],
+    use: ['/retail', '/ws'],
 }
