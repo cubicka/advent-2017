@@ -1,0 +1,35 @@
+{
+  "name": "advent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.16.2",
+    "express-session": "^1.15.6",
+    "express-validator": "^4.3.0",
+    "helmet": "^3.9.0",
+    "http": "0.0.0",
+    "jsonwebtoken": "^8.1.0",
+    "knex": "^0.14.2",
+    "lodash": "^4.17.4",
+    "nexmo": "^2.1.1",
+    "parsetrace": "^0.2.0"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.1",
+    "@types/express-session": "^1.15.6",
+    "@types/helmet": "0.0.37",
+    "@types/jsonwebtoken": "^7.2.5",
+    "@types/knex": "0.0.67",
+    "@types/lodash": "^4.14.91",
+    "tslint": "^5.8.0",
+    "typescript": "^2.6.2"
+  }
+}
