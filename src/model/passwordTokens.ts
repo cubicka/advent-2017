@@ -10,7 +10,7 @@ export interface PasswordToken {
     userID: string;
 }
 
-const FetchPasswordToken = ORM.Fetch<PasswordToken>(Table.passwordToken)
+const FetchPasswordToken = ORM.Fetch<PasswordToken>(Table.passwordTokens)
 
 export function GetByToken(token: string): Bluebird<PasswordToken[]> {
     return FetchPasswordToken([

@@ -1,9 +1,9 @@
 import Bluebird from 'bluebird'
 import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
-import Buyers, { Buyer } from '../model/buyer'
-import Sellers, { Seller } from '../model/seller'
-import Users, { User, UserType } from '../model/user'
+import Buyers, { Buyer } from '../model/buyers'
+import Sellers, { Seller } from '../model/sellers'
+import Users, { User, UserType } from '../model/users'
 import { Omit } from '../util/type'
 // import Courier from './model/courier'
 
@@ -41,7 +41,7 @@ function CreateToken(userID: string, notificationID?: string): Bluebird<string> 
     const token = RandomBytes()
     return Users.SetToken(userID, token, notificationID)
     .then((usedToken) => {
-        const signedToken = jwt.sign({token: usedToken}, config.secret, {
+        const signedToken = jwt.sign({token: usedToken, userID: userID}, config.secret, {
             expiresIn: '3d',
         })
 
@@ -101,29 +101,6 @@ export default {
 
 // function SignOut({id}) {
 //     return Users.SignOut(id)
-// }
-
-// function AuthorizeMiddleware(req, res, next) {
-//     function Fail() {
-//         res.send403('Authentication failed.')
-//     }
-
-//     const signedToken = req.headers && req.headers['x-access-token']
-//     if (!signedToken) return Fail()
-
-//     jwt.verify(signedToken, config.secret, (err, {token} = {}) => {
-//         if (err || !token) return Fail()
-
-//         return Users.ByToken(token)
-//         .then((user) => {
-//             if (!user.username) {
-//                 return Fail()
-//             }
-
-//             req.kulakan.user = user
-//             return next()
-//         })
-//     })
 // }
 
 // function CourierMiddleware(req, res, next) {

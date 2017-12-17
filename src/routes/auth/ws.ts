@@ -1,9 +1,9 @@
 import Bluebird from 'bluebird'
 import express from 'express'
 
-import PasswordTokens from '../../model/passwordToken'
-import Sellers from '../../model/seller'
-import { UserType } from '../../model/user'
+import PasswordTokens from '../../model/passwordTokens'
+import Sellers from '../../model/sellers'
+import { UserType } from '../../model/users'
 import Auth from '../../service/auth'
 import SMS from '../../service/sms'
 import { ProjectObj } from '../../util/obj'

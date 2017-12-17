@@ -37,6 +37,10 @@ export function CreateUser(user: Omit<User,'id'>): Bluebird<User> {
     })
 }
 
+function GetByToken(token: string): Bluebird<User[]> {
+    return FetchUsers([ ORM.FilterBy({ token }) ])
+}
+
 function GetByUsername(username: string): Bluebird<User[]> {
     return FetchUsers([ ORM.FilterBy({username}) ])
 }
@@ -82,6 +86,7 @@ function SetToken(id: string, token: string, notificationID?: string): Bluebird<
 }
 
 export default {
+    GetByToken,
     GetByUsername,
     SetSaltHash,
     SetToken,

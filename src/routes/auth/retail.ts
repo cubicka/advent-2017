@@ -1,7 +1,7 @@
 import express from 'express'
 
-import PasswordTokens from '../../model/passwordToken'
-import Users, { UserType } from '../../model/user'
+import PasswordTokens from '../../model/passwordTokens'
+import Users, { UserType } from '../../model/users'
 import Auth from '../../service/auth'
 import SMS from '../../service/sms'
 import { ProjectObj } from '../../util/obj'

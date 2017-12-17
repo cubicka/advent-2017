@@ -9,15 +9,28 @@ var pg = knex({
 })
 
 export enum Table {
-    buyer = 'buyer_details',
+    additionals = 'additionals',
+    buyers = 'buyer_details',
     deliveryOptions = 'delivery_options',
-    passwordToken = 'password_token',
-    seller = 'seller_details',
+    katalog = 'katalog',
+    orderItems = 'orderItems',
+    orders = 'orders',
+    passwordTokens = 'password_token',
+    sellers = 'seller_details',
     users = 'users',
 }
 
 export type BuilderFn = (builder: knex.QueryBuilder) => knex.QueryBuilder;
 type knexValue = boolean | Date | null | string
+
+function Count(name: Table): (builders: BuilderFn[]) => Bluebird<{count: number}[]> {
+    return builders => {
+        return builders.reduce((accum, builder): knex.QueryBuilder => {
+            return builder(accum)
+        }, pg(name)).count()
+        .then(counts => counts)
+    }
+}
 
 function Fetch<T>(name: string): (builders: BuilderFn[]) => Bluebird<T[]> {
     return (builders: BuilderFn[]) => {
@@ -41,8 +54,16 @@ function FilterBy(filters: { [x: string]: knexValue }): BuilderFn {
     return builder => builder.where(filters)
 }
 
-function FilterIn(key: string, values: string[]): BuilderFn {
+function FilterIn(key: string, values: (string | number)[]): BuilderFn {
     return builder => builder.whereIn(key, values)
+}
+
+function FilterNotNull(key: string): BuilderFn {
+    return builder => builder.whereNotNull(key)
+}
+
+function FilterNull(key: string): BuilderFn {
+    return builder => builder.whereNull(key)
 }
 
 function Insert(obj: any, returning?: string[]): BuilderFn {
@@ -51,6 +72,14 @@ function Insert(obj: any, returning?: string[]): BuilderFn {
 
 function Join(tableName: string, firstID: string, secondID: string): BuilderFn {
     return builder => builder.innerJoin(tableName, firstID, secondID)
+}
+
+function Limit(n: number): BuilderFn {
+    return builder => builder.limit(n)
+}
+
+function Offset(n: number): BuilderFn {
+    return builder => builder.offset(n)
 }
 
 function Select(...keys: string[]): BuilderFn {
@@ -62,7 +91,7 @@ function Update(updateInfo: { [x: string]: knexValue }, returning?: string[]): B
 }
 
 export const ORM = {
-    Fetch, FetchJoin, FilterBy, FilterIn, Insert, Join, Select, Update,
+    Count, Fetch, FetchJoin, FilterBy, FilterIn, FilterNotNull, FilterNull, Insert, Join, Limit, Offset, Select, Update,
 }
 
 // export function FilterBy(key: string, value: string): BuilderFn {

@@ -1,6 +1,6 @@
 import express from 'express'
 
-import { UserType } from '../../model/user'
+import { UserType } from '../../model/users'
 import Auth from '../../service/auth'
 import { IsString, Middleware } from '../../util/validation'
 
