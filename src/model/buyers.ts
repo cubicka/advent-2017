@@ -35,17 +35,18 @@ export enum RelationsTier {
 
 export interface Relations {
     buyerID: string;
+    id: number;
     sellerID: string;
     type: RelationsTier;
     active: boolean;
 }
 
 const FetchBuyer = ORM.Fetch<Buyer>(Table.buyers);
+const FetchRelations = ORM.Fetch<Relations>(Table.buyersRelations);
 const FetchLeftJoinBuyerDetailsRelations = ORM.FetchLeftJoin<Relations,  Buyer>(
     Table.buyers, Table.buyersRelations, 'buyer_details.userID', 'buyer_relations.buyerID');
 const FetchAndCountBuyerDetailsRelations = ORM.FetchJoinAndCount<Relations,  Buyer>(
     Table.buyers, Table.buyersRelations, 'buyer_details.userID', 'buyer_relations.buyerID');
-    // const FetchUsersBuyers = ORM.FetchJoin<User, Buyer>(Table.users, Table.buyer, 'buyer_details.userID', 'users.id')
 
 function CreateBuyer(seller: Omit<Buyer, 'userID'>, userData: Omit<User, 'id'>): Bluebird<Buyer> {
     return CreateUser(userData)
@@ -122,7 +123,53 @@ function ListByPhone(phone: string) {
     });
 }
 
+function Activate(sellerID: string, buyerID: string) {
+    return FetchRelations([
+        ORM.FilterBy({ buyerID, sellerID }),
+    ])
+    .then(relations => {
+        if (relations.length === 0) {
+            return FetchRelations([
+                ORM.Insert({
+                    buyerID, sellerID,
+                    active: true,
+                    tier: 'normal',
+                }),
+            ]);
+        }
+
+        return FetchRelations([
+            ORM.FilterBy({ id: relations[0].id }),
+            ORM.Update({ active: true }),
+        ]);
+    })
+    .then(() => {
+        return 'Retailer telah diaktivasi.';
+    });
+}
+
+function Deactivate(sellerID: string, buyerID: string) {
+    return FetchRelations([
+        ORM.FilterBy({ buyerID, sellerID }),
+    ])
+    .then(relations => {
+        if (relations.length === 0) {
+            return 'Retailer tidak ditemukan';
+        }
+
+        return FetchRelations([
+            ORM.FilterBy({ id: relations[0].id }),
+            ORM.Update({ active: false }),
+        ])
+        .then(() => {
+            return 'Retailer is dinonaktifkan.';
+        });
+    });
+}
+
 export default {
+    Activate,
+    Deactivate,
     CreateBuyer,
     ListByPhone,
     ListForSeller,

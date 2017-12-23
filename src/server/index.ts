@@ -64,6 +64,8 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
     console.log('error query', req.query);
     // tslint:disable-next-line:no-console
     console.log('error params', req.params);
+    // tslint:disable-next-line:no-console
+    console.log('error stack', err.stack);
 
     res.send(err.message);
 });

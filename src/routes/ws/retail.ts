@@ -4,50 +4,6 @@ import Buyers from '../../model/buyers';
 import { IsPhone, Middleware} from '../../util/validation';
 
 import { ParseLimitOffset } from '../middleware/helper';
-// import {ParseLimitOffset} from '../../middleware/helper'
-// import Retail from '../../../model/retail'
-
-// const phoneBodySpecs = {
-//     body: {
-//         phone: IsString,
-//     }
-// }
-
-// function Activate(req, res, next) {
-//     const {user} = req.kulakan
-//     const sellerID = user.id
-
-//     return Retail.ByPhone(req.body.phone)
-//     .then((buyers) => {
-//         if (buyers.length === 0) {
-//             res.send400('Buyer tidak ditemukan')
-//             return
-//         }
-
-//         return Retail.Activate(sellerID, buyers[0].userID)
-//         .then((message) => {
-//             res.send({message})
-//         })
-//     })
-// }
-
-// function Deactivate(req, res, next) {
-//     const {user} = req.kulakan
-//     const sellerID = user.id
-
-//     return Retail.ByPhone(req.body.phone)
-//     .then((buyers) => {
-//         if (buyers.length === 0) {
-//             res.send400('Buyer tidak ditemukan')
-//             return
-//         }
-
-//         return Retail.Deactivate(sellerID, buyers[0].userID)
-//         .then((message) => {
-//             res.send({message})
-//         })
-//     })
-// }
 
 function List(req: express.Request, res: express.Response, next: express.NextFunction) {
     const {user, params} = req.kulakan;
@@ -78,6 +34,48 @@ function ByPhone(req: express.Request, res: express.Response, next: express.Next
     });
 }
 
+const phoneBodySpecs = {
+    body: {
+        phone: IsPhone,
+    },
+};
+
+function Activate(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const {user} = req.kulakan;
+    const sellerID = user.id;
+
+    return Buyers.ListByPhone(req.body.phone)
+    .then(buyers => {
+        if (buyers.length !== 1) {
+            res.send400('Buyer tidak ditemukan');
+            return;
+        }
+
+        return Buyers.Activate(sellerID, buyers[0].userID)
+        .then(message => {
+            res.send({message});
+        });
+    });
+}
+
+function Deactivate(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const {user} = req.kulakan;
+    const sellerID = user.id;
+
+    return Buyers.ListByPhone(req.body.phone)
+    .then(buyers => {
+        if (buyers.length !== 1) {
+            res.send400('Buyer tidak ditemukan');
+            return;
+        }
+
+        return Buyers.Deactivate(sellerID, buyers[0].userID)
+        .then(message => {
+            res.send({message});
+        });
+    });
+}
+
 // const changeTierSpecs = {
 //     body: {
 //         tier: (s) => (s === 'bronze' || s === 'silver' || s === 'gold' || s === 'normal'),
@@ -101,8 +99,8 @@ export default {
         ['/find-buyer', Middleware(byPhoneSpecs), ByPhone],
     ],
     post: [
-    //     ['/activate', Middleware(phoneBodySpecs), Activate],
-    //     ['/deactivate', Middleware(phoneBodySpecs), Deactivate],
+        ['/activate', Middleware(phoneBodySpecs), Activate],
+        ['/deactivate', Middleware(phoneBodySpecs), Deactivate],
     //     ['/:id(\\d+)/change-tier', Middleware(changeTierSpecs), ChangeTier],
     ],
 };

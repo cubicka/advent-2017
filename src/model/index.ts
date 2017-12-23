@@ -23,7 +23,7 @@ export enum Table {
 }
 
 export type BuilderFn = (builder: knex.QueryBuilder) => knex.QueryBuilder;
-type knexValue = boolean | Date | null | string;
+type knexValue = boolean | Date | null | string | number;
 
 interface QueryParams {
     columns?: string[];
