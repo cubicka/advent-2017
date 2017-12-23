@@ -98,7 +98,7 @@ function FetchOrderWithCount(
 }
 
 function OrderStatusFilter(status: OrderStatus): BuilderFn[] {
-    switch (status) {
+    switch ('details.' + status) {
         case OrderStatus.created: return [
             ORM.FilterNull(OrderStatus.accepted),
             ORM.FilterNull(OrderStatus.cancelled),
@@ -146,7 +146,6 @@ function List(
     ];
 
     if (params.status !== undefined) {
-        console.log('params.status', params.status);
         builders = builders.concat(OrderStatusFilter(params.status));
     }
 
@@ -275,27 +274,6 @@ export default {
 //     })
 // }
 
-// function AssignOrder(userID, orderID) {
-//     return OfWhere({'details.id': orderID, sellerID: userID})
-//     .then((orders) => {
-//         if (orders.length === 0) {
-//             return [{
-//                 message: 'Pesanan tidak ditemukan.'
-//             }]
-//         }
-
-//         const order = orders[0]
-//         if (!order.details.accepted || order.details.cancelled || order.details.assigned) {
-//             return [{
-//                 message: 'Pesanan tidak dapat ditandai sebagai siap diambil.'
-//             }]
-//         }
-
-//         return pg('orders').where({id: orderID}).update({assigned: new Date()})
-//         .then(() => (OfWhere({'details.id': orderID, sellerID: userID})))
-//     })
-// }
-
 // function LatestVersion(order) {
 //     // const orderItems = items.filter((item) => (item.orderID === order.id))
 //     // const orderAdds = adds.filter((item) => (item.orderID === order.id))
@@ -398,21 +376,6 @@ export default {
 //             .then(() => (orders))
 //             .catch(() => (orders))
 //         })
-//     },
-//     Draft(userID, order) {
-//         return DraftOrder(userID, order)
-//     },
-//     Cancel(userID, orderID, notes) {
-//         return pg('orders').where({id: orderID, sellerID: userID})
-//         .then((orders) => {
-//             if (!orders || orders.length < 1) return {}
-
-//             const order = orders[0]
-//             if (order.delivered) return {}
-//             return pg('orders').where({id: orderID, sellerID: userID})
-// .update({cancelled: new Date(), notes, cancelledby: 'seller'}, ['id', 'cancelled'])
-//         })
-//         .then(() => (OfWhere({'details.id': orderID, sellerID: userID})))
 //     },
 //     AllOrders,
 // }

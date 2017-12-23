@@ -13,7 +13,7 @@ export function ParseLimitOffset(req: express.Request, res: express.Response, ne
 export function ErrorLogger(fn: express.Router) {
     return (req: express.Request, res: express.Response, next: express.NextFunction) => {
         Bluebird.try(() => {
-            fn(req, res, next);
+            return fn(req, res, next);
         })
         .catch(next);
     };

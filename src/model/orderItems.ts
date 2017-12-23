@@ -41,6 +41,29 @@ const FetchKatalogOrderItems = ORM.FetchJoin<OrderItems, Katalog>(
     'order_items.itemID',
 );
 
+function ChangeImageUrl(item: Katalog & OrderItems) {
+    if (!item.image) return item;
+
+    const fullUrl = item.image;
+    const splittedUrl = fullUrl.split('/');
+
+    const fileName = splittedUrl[splittedUrl.length - 1];
+    const splittedFileName = fileName.split('.');
+    const extension = splittedFileName[splittedFileName.length - 1];
+
+    const prefix = 'https://rulo-katalog.s3.amazonaws.com';
+    const subs = ['img512', 'img256', 'img128', 'img64', 'img32'];
+
+    return subs.reduce((accum, sub) => {
+        return Object.assign(accum, {
+            [sub]: (extension !== 'png') ? `${prefix}/${sub}/${fileName}` : `${prefix}/${fileName}`,
+        });
+    }, Object.assign(item, {
+        image: `${prefix}/img256/${fileName}`,
+        imageFull: item.image,
+    }));
+}
+
 export function AddItems(orders: DetailedOrder[]) {
     const ids = orders.map(order => (order.details.id));
     return Bluebird.all([
@@ -66,7 +89,7 @@ export function AddItems(orders: DetailedOrder[]) {
         ]),
     ])
     .then(([orderItems, additionals]) => {
-        const itemsDict = lodash.groupBy(orderItems, item => (item.orderID));
+        const itemsDict = lodash.groupBy(orderItems.map(ChangeImageUrl), item => (item.orderID));
         const addDict = lodash.groupBy(additionals, add => (add.orderID));
 
         return orders.map(order => {
