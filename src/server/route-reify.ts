@@ -1,4 +1,6 @@
 import * as express from 'express';
+
+import { ErrorLogger } from '../routes/middleware/helper';
 import { IsArray } from '../util/obj';
 
 function Reify(path: string) {
@@ -8,7 +10,7 @@ function Reify(path: string) {
     if ('use' in routeSpecs) {
         routeSpecs.use.forEach((name: string) => {
             if (typeof name === 'function') {
-                router.use(name);
+                router.use(ErrorLogger(name));
                 return;
             }
 
@@ -23,7 +25,12 @@ function Reify(path: string) {
             const specs = routeSpecs[ops];
             if (IsArray(specs[0])) {
                 specs.forEach((spec: any[]) => {
-                    router[ops](...spec);
+                    const loggedSpec = spec.map((specItem: any) => {
+                        if (typeof specItem !== 'function') return specItem;
+                        return ErrorLogger(specItem);
+                    });
+
+                    router[ops](...loggedSpec);
                 });
             } else {
                 router[ops](...specs);

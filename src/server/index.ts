@@ -52,7 +52,18 @@ app.use((req, res, next) => {
 
 // error handlers
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    if (!res.statusCode) res.status(500);
+    if (res.statusCode === 200) res.status(400);
+
+    // tslint:disable-next-line:no-console
+    console.log('error:', (new Date()).getTime(), req.path, err.message);
+    // tslint:disable-next-line:no-console
+    console.log('error header', req.headers);
+    // tslint:disable-next-line:no-console
+    console.log('error body', req.body);
+    // tslint:disable-next-line:no-console
+    console.log('error query', req.query);
+    // tslint:disable-next-line:no-console
+    console.log('error params', req.params);
 
     res.send(err.message);
 });

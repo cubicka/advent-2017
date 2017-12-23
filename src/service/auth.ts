@@ -1,6 +1,6 @@
 import Bluebird from 'bluebird';
-import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
+import * as jwt from 'jsonwebtoken';
 
 import * as config from '../config.json';
 import Buyers, { Buyer } from '../model/buyers';

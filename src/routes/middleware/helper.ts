@@ -1,3 +1,4 @@
+import * as Bluebird from 'bluebird';
 import express from 'express';
 
 export function ParseLimitOffset(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -7,4 +8,13 @@ export function ParseLimitOffset(req: express.Request, res: express.Response, ne
     req.kulakan.params = req.kulakan.params || {};
     Object.assign(req.kulakan.params, { limit, offset });
     next();
+}
+
+export function ErrorLogger(fn: express.Router) {
+    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        Bluebird.try(() => {
+            fn(req, res, next);
+        })
+        .catch(next);
+    };
 }

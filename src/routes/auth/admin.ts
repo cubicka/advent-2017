@@ -15,13 +15,12 @@ function SignIn(req: express.Request, res: express.Response, next: express.NextF
     return Auth.AuthenticateLogin(req.body)
     .then(user => {
         if (user.type !== UserType.admin) {
-            return res.send403('Authentication failed.');
+            return res.send400('Authentication failed.');
         }
 
         req.kulakan.userID = user.id;
         next();
-    })
-    .catch(err => res.send400(err.message));
+    });
 }
 
 function CreateToken(req: express.Request, res: express.Response, next: express.NextFunction) {

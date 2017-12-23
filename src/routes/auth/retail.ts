@@ -21,13 +21,12 @@ function SignIn(req: express.Request, res: express.Response, next: express.NextF
     return Auth.AuthenticateLogin({username, password: req.body.password})
     .then(user => {
         if (user.type !== UserType.buyer) {
-            return res.send403('Autentikasi gagal');
+            return res.send400('Autentikasi gagal');
         }
 
         req.kulakan.userID = user.id;
         next();
-    })
-    .catch(err => res.send400(err.message));
+    });
 }
 
 function CreateToken(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -38,8 +37,7 @@ function CreateToken(req: express.Request, res: express.Response, next: express.
     })
     .then(token => {
         res.send({ token });
-    })
-    .catch(err => res.send400(err.message));
+    });
 }
 
 const registrationSpecs = {
@@ -64,8 +62,7 @@ function Register(req: express.Request, res: express.Response, next: express.Nex
     .then(registeredBuyer => {
         req.kulakan.userID = registeredBuyer.userID;
         next();
-    })
-    .catch(err => res.send400(err.message));
+    });
 }
 
 const forgotPassSpecs = {
@@ -79,13 +76,13 @@ function UserByPhone(req: express.Request, res: express.Response, next: express.
     return Users.GetByUsername(phone)
     .then(users => {
         if (users.length === 0 || users[0].type !== UserType.buyer) {
-            throw new Error('User tidak ditemukan');
+            res.send400('User tidak ditemukan');
+            return;
         }
 
         req.kulakan.user = users[0];
         next();
-    })
-    .catch(err => res.send400(err.message));
+    });
 }
 
 function ForgotPassword(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -94,8 +91,7 @@ function ForgotPassword(req: express.Request, res: express.Response, next: expre
     .then(token => {
         req.kulakan.token = token;
         next();
-    })
-    .catch(err => res.send400(err.message));
+    });
 }
 
 function SendSMS(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -106,8 +102,7 @@ function SendSMS(req: express.Request, res: express.Response, next: express.Next
             status: 'verification code is sent',
             temp: response,
         });
-    })
-    .catch(err => res.send400(err.message));
+    });
 }
 
 const setPassSpecs = {
@@ -123,8 +118,7 @@ function ValidateToken(req: express.Request, res: express.Response, next: expres
     .then(tokens => {
         req.kulakan.token = tokens[0];
         next();
-    })
-    .catch(err => res.send400(err.message));
+    });
 }
 
 function ChangePassByToken(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -134,8 +128,7 @@ function ChangePassByToken(req: express.Request, res: express.Response, next: ex
     return Auth.ChangePassword(token.userID, password)
     .then(() => {
         res.send({status: 'Password telah diganti'});
-    })
-    .catch(err => res.send400(err.message));
+    });
 }
 
 export default {
