@@ -29,5 +29,5 @@ export function FetchItemPricesByIDs(ids: string[]) {
 export function FetchKatalogItemPricesByIDs(ids: string[]) {
     return FetchKatalogOrderItems([], [
         ORM.FilterIn('id', ids),
-    ], ['']);
+    ]);
 }

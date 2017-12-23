@@ -1,5 +1,7 @@
 import * as Bluebird from 'bluebird';
+import knex from 'knex';
 
+import { Normalize } from '../util/phone';
 import { Omit } from '../util/type';
 
 import { ORM, Table } from './index';
@@ -24,8 +26,26 @@ export interface Buyer {
     zipcode?: string;
 }
 
+export enum RelationsTier {
+    normal = 'normal',
+    bronze = 'bronze',
+    silver = 'silver',
+    gold = 'gold',
+}
+
+export interface Relations {
+    buyerID: string;
+    sellerID: string;
+    type: RelationsTier;
+    active: boolean;
+}
+
 const FetchBuyer = ORM.Fetch<Buyer>(Table.buyers);
-// const FetchUsersBuyers = ORM.FetchJoin<User, Buyer>(Table.users, Table.buyer, 'buyer_details.userID', 'users.id')
+const FetchLeftJoinBuyerDetailsRelations = ORM.FetchLeftJoin<Relations,  Buyer>(
+    Table.buyers, Table.buyersRelations, 'buyer_details.userID', 'buyer_relations.buyerID');
+const FetchAndCountBuyerDetailsRelations = ORM.FetchJoinAndCount<Relations,  Buyer>(
+    Table.buyers, Table.buyersRelations, 'buyer_details.userID', 'buyer_relations.buyerID');
+    // const FetchUsersBuyers = ORM.FetchJoin<User, Buyer>(Table.users, Table.buyer, 'buyer_details.userID', 'users.id')
 
 function CreateBuyer(seller: Omit<Buyer, 'userID'>, userData: Omit<User, 'id'>): Bluebird<Buyer> {
     return CreateUser(userData)
@@ -37,6 +57,73 @@ function CreateBuyer(seller: Omit<Buyer, 'userID'>, userData: Omit<User, 'id'>):
     });
 }
 
+interface ListForSellerParams {
+    limit: number;
+    name: string;
+    offset: number;
+    sortBy: string;
+    sortOrder: string;
+}
+
+function ListForSeller(sellerID: string, {limit, name = '', offset, sortBy = '', sortOrder = ''}: ListForSellerParams) {
+    function SortByParam() {
+        switch (sortBy.toLowerCase()) {
+            case 'name': return ['name', 'asc'];
+            case 'shop': return ['shop', 'asc'];
+            default: return ['buyer_relations.created_at', 'desc'];
+        }
+    }
+
+    function SortOrderParam(defaultValue: string) {
+        switch (sortOrder.toLowerCase()) {
+            case 'asc': return 'asc';
+            case 'desc': return 'desc';
+            default: return defaultValue;
+        }
+    }
+
+    const sortByParam = SortByParam();
+    const sortOrderParam = SortOrderParam(sortByParam[1]);
+
+    return FetchAndCountBuyerDetailsRelations([
+        ORM.FilterBy(function(this: knex.QueryBuilder) {
+            const nameTokens = name.split(' ').map(s => (s.replace(/[^0-9a-z]/gi, ''))).filter(s => (s.length > 0));
+
+            nameTokens.forEach(token => {
+                this.andWhere(function(this: knex.QueryBuilder) {
+                    this.orWhere('name', 'ilike', `%${token}%`).orWhere('shop', 'ilike', `%${token}%`);
+                });
+            });
+        }),
+    ], [
+        ORM.FilterBy({ sellerID }),
+    ], {
+        limit, offset, sortBy: sortByParam[0], sortOrder: sortOrderParam,
+    })
+    .then(({ count, list }) => {
+        return {
+            count,
+            retailers: list,
+        };
+    });
+}
+
+function ListByPhone(phone: string) {
+    return FetchLeftJoinBuyerDetailsRelations([
+        ORM.FilterBy({phone: Normalize(phone)}),
+    ])
+    .then(buyers => {
+        return buyers.map(buyer => {
+            return Object.assign(buyer, {
+                tier: buyer.type || 'normal',
+                active: buyer.active || false,
+            });
+        });
+    });
+}
+
 export default {
     CreateBuyer,
+    ListByPhone,
+    ListForSeller,
 };
