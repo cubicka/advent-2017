@@ -76,22 +76,21 @@ function Deactivate(req: express.Request, res: express.Response, next: express.N
     });
 }
 
-// const changeTierSpecs = {
-//     body: {
-//         tier: (s) => (s === 'bronze' || s === 'silver' || s === 'gold' || s === 'normal'),
-//     }
-// }
+const changeTierSpecs = {
+    body: {
+        tier: (s: string) => (s === 'bronze' || s === 'silver' || s === 'gold' || s === 'normal'),
+    },
+};
 
-// function ChangeTier(req, res, next) {
-//     const user = req.kulakan.user
-//     const id = parseInt(req.params.id, 10)
+function ChangeTier(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const user = req.kulakan.user;
+    const buyerID = parseInt(req.params.id, 10);
 
-//     return Retail.ChangeTier(user.id, id, req.body.tier)
-//     .then(() => {
-//         res.send({ status: 'Sukses ganti tier'})
-//     })
-//     .catch(err => res.send400(err.message))
-// }
+    return Buyers.ChangeTier(user.id, buyerID, req.body.tier)
+    .then(() => {
+        res.send({ status: 'Sukses ganti tier' });
+    });
+}
 
 export default {
     get: [
@@ -101,6 +100,6 @@ export default {
     post: [
         ['/activate', Middleware(phoneBodySpecs), Activate],
         ['/deactivate', Middleware(phoneBodySpecs), Deactivate],
-    //     ['/:id(\\d+)/change-tier', Middleware(changeTierSpecs), ChangeTier],
+        ['/:id(\\d+)/change-tier', Middleware(changeTierSpecs), ChangeTier],
     ],
 };

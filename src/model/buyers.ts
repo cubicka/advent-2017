@@ -167,10 +167,24 @@ function Deactivate(sellerID: string, buyerID: string) {
     });
 }
 
+function ChangeTier(sellerID: string, buyerID: number, tier: RelationsTier) {
+    return FetchRelations([
+        ORM.FilterBy({ buyerID, sellerID }),
+    ])
+    .then(relations => {
+        if (relations.length === 0) throw new Error('Tidak ada relasi antara ws dan retailer');
+        return FetchRelations([
+            ORM.FilterBy({ id: relations[0].id }),
+            ORM.Update({ type: tier }),
+        ]);
+    });
+}
+
 export default {
     Activate,
-    Deactivate,
+    ChangeTier,
     CreateBuyer,
+    Deactivate,
     ListByPhone,
     ListForSeller,
 };
