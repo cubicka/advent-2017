@@ -1,9 +1,9 @@
-import Bluebird from 'bluebird'
+import Bluebird from 'bluebird';
 
-import { Omit } from '../util/type'
+import { Omit } from '../util/type';
 
-import { ORM, Table } from './index'
-import { CreateUser, User } from './users'
+import { ORM, Table } from './index';
+import { CreateUser, User } from './users';
 
 export interface Buyer {
     address: string;
@@ -24,19 +24,19 @@ export interface Buyer {
     zipcode?: string;
 }
 
-const FetchBuyer = ORM.Fetch<Buyer>(Table.buyers)
+const FetchBuyer = ORM.Fetch<Buyer>(Table.buyers);
 // const FetchUsersBuyers = ORM.FetchJoin<User, Buyer>(Table.users, Table.buyer, 'buyer_details.userID', 'users.id')
 
 function CreateBuyer(seller: Omit<Buyer, 'userID'>, userData: Omit<User, 'id'>): Bluebird<Buyer> {
     return CreateUser(userData)
     .then(createdUser => {
         return FetchBuyer([
-            ORM.Insert({ ...seller, userID: createdUser.id })
+            ORM.Insert({ ...seller, userID: createdUser.id }),
         ])
-        .then(users => users[0])
-    })
+        .then(users => users[0]);
+    });
 }
 
 export default {
     CreateBuyer,
-}
+};

@@ -1,26 +1,28 @@
 import * as http from 'http';
 import app from './server';
 
-const port = normalizePort(process.env.PORT || '3001')
+const port = normalizePort(process.env.PORT || '3001');
 
-let server = http.createServer(app)
-server.listen(port)
-server.on('error', onError)
-server.on('listening', onListening)
-console.log('listen to', port)
+const server = http.createServer(app);
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+// tslint:disable-next-line:no-console
+console.log('listen to', port);
 
 function normalizePort(val: string) {
-    var port = parseInt(val, 10)
+    const normalizedPort = parseInt(val, 10);
 
-    if (isNaN(port)) {
-        return val
+    if (isNaN(normalizedPort)) {
+        return val;
     }
 
-    if (port >= 0) {
-        return port
+    if (normalizedPort >= 0) {
+        return normalizedPort;
     }
 
-    return false
+    return false;
 }
 
 function onError(error: Error) {
@@ -55,13 +57,13 @@ function onListening() {
     //     : 'port ' + addr.port;
 }
 
-process.on('message', function(msg) {
-    if (msg == 'shutdown') {
-        server.close(function() {
+process.on('message', msg => {
+    if (msg === 'shutdown') {
+        server.close(() => {
             process.exit(0);
         });
-        setTimeout(function() {
+        setTimeout(() => {
             process.exit(0);
-        }, 30*1000)
+        }, 30 * 1000);
     }
-})
+});

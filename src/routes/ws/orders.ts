@@ -5,25 +5,41 @@
 // import {FindDriver as Trucktobee} from '../../../service/trucktobee'
 // import {MergeDeep} from '../../../util/obj'
 // import Courier from '../../../model/courier'
-import express from 'express'
+import express from 'express';
 
-import Orders from '../../model/orders'
+import Orders from '../../model/orders';
 
-import { ParseLimitOffset } from '../middleware/helper'
+import { ParseLimitOffset } from '../middleware/helper';
 
 function List(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const { user, params } = req.kulakan
+    const { user, params } = req.kulakan;
 
     return Orders.ListBySeller(user.id, { ...params, status: req.query.status })
     .then(result => {
-        res.send(result)
-    })
+        res.send(result);
+    });
 }
+
+function Unread(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const user = req.kulakan.user;
+    return Orders.ListUnread(user.id)
+    .then(count => {
+        res.send({count});
+    });
+}
+
+// function Detail(req: express.Request, res: express.Response, next: express.NextFunction) {
+//     const user = req.kulakan.user
+//     return Orders.Detail(user.id, req.params.id)
+//     .then(order => {
+//         res.send({ order })
+//     })
+// }
 
 export default {
     get: [
         ['/', ParseLimitOffset, List],
-        // ['/unread', Unread],
+        ['/unread', Unread],
         // ['/:id(\\d+)', Detail],
     ],
     post: [
@@ -33,8 +49,8 @@ export default {
         // ['/:id(\\d+)/ready-for-pickup', ReadyForPickup, SendMobileNotification, SendRes],
         // ['/:id(\\d+)/find-driver', Fetch(OrderManager.Fetch), GetBuyer, FindDriver],
         // ['/:id(\\d+)/deliver', FetchOrder, DeliverValidator, Deliver],
-    ]
-}
+    ],
+};
 
 // const RuloMapping = require('../../../model/ruloMapping.json')
 
@@ -66,34 +82,6 @@ export default {
 //         image: `${prefix}/img256/${fileName}`,
 //         imageFull: item.image,
 //     }))
-// }
-
-// function Unread(req, res, next) {
-//     const user = req.kulakan.user
-//     return Orders.Unread(user.id)
-//     .then((count) => {
-//         res.send({count})
-//     })
-// }
-
-// function Detail(req, res, next) {
-//     const user = req.kulakan.user
-//     return Orders.Detail(user.id, req.params.id)
-//     .then((orders) => {
-//         const updatedOrders = orders.map((order) => {
-//             return MergeDeep(order, {
-//                 version: Object.keys(order.version).reduce((accum, version) => {
-//                     accum[version] = {
-//                         additionals: order.version[version].additionals,
-//                         items: order.version[version].items.map(ChangeImageUrl).map(ChangeName),
-//                     }
-//                     return accum
-//                 }, {})
-//             })
-//         })
-
-//         res.send({order: updatedOrders})
-//     })
 // }
 
 // function AddDriverDetail(req, res, next) {

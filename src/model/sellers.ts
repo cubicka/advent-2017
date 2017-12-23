@@ -1,9 +1,9 @@
-import Bluebird from 'bluebird'
+import Bluebird from 'bluebird';
 
-import { Omit } from '../util/type'
+import { Omit } from '../util/type';
 
-import { ORM, Table } from './index'
-import { CreateUser, User, UserType } from './users'
+import { ORM, Table } from './index';
+import { CreateUser, User, UserType } from './users';
 
 export interface Seller {
     address: string;
@@ -25,47 +25,47 @@ export interface Seller {
     userID: string;
 }
 
-const FetchSellers = ORM.Fetch<Seller>(Table.sellers)
-const FetchUsersSellers = ORM.FetchJoin<User, Seller>(Table.users, Table.sellers, 'seller_details.userID', 'users.id')
+const FetchSellers = ORM.Fetch<Seller>(Table.sellers);
+const FetchUsersSellers = ORM.FetchJoin<User, Seller>(Table.users, Table.sellers, 'seller_details.userID', 'users.id');
 
 function CreateSeller(seller: Omit<Seller, 'userID'>, userData: Omit<User, 'id'>): Bluebird<Seller> {
     return CreateUser(userData)
     .then(createdUser => {
         return FetchSellers([
-            ORM.Insert({ ...seller, userID: createdUser.id })
+            ORM.Insert({ ...seller, userID: createdUser.id }),
         ])
-        .then(users => users[0])
-    })
+        .then(users => users[0]);
+    });
 }
 
-function GetByPhone(phone: string): Bluebird<(User & Seller)[]> {
+function GetByPhone(phone: string): Bluebird<Array<User & Seller>> {
     return FetchUsersSellers([
         ORM.FilterBy({ phone, type: UserType.seller }),
     ])
     .then(users => {
         if (users.length === 0) {
-            throw new Error('Seller tidak ditemukan')
+            throw new Error('Seller tidak ditemukan');
         }
 
-        return users
-    })
+        return users;
+    });
 }
 
-function GetByUsername(username: string): Bluebird<(User & Seller)[]> {
+function GetByUsername(username: string): Bluebird<Array<User & Seller>> {
     return FetchUsersSellers([
         ORM.FilterBy({ username, type: UserType.seller }),
     ])
     .then(users => {
         if (users.length === 0) {
-            throw new Error('Seller tidak ditemukan')
+            throw new Error('Seller tidak ditemukan');
         }
 
-        return users
-    })
+        return users;
+    });
 }
 
 export default {
     CreateSeller,
     GetByPhone,
     GetByUsername,
-}
+};

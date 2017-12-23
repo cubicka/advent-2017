@@ -1,12 +1,12 @@
-import Bluebird from 'bluebird'
-import knex from 'knex'
+import Bluebird from 'bluebird';
+import * as knex from 'knex';
 
-const config = require('../config.json')
+import * as config from '../config.json';
 
-var pg = knex({
+const pg = knex({
     client: 'postgresql',
     connection: config.dbConnection,
-})
+});
 
 export enum Table {
     additionals = 'additionals',
@@ -21,78 +21,83 @@ export enum Table {
 }
 
 export type BuilderFn = (builder: knex.QueryBuilder) => knex.QueryBuilder;
-type knexValue = boolean | Date | null | string
+type knexValue = boolean | Date | null | string;
 
-function Count(name: Table): (builders: BuilderFn[]) => Bluebird<{count: number}[]> {
+function Count(name: Table): (builders: BuilderFn[]) => Bluebird<Array<{count: number}>> {
     return builders => {
         return builders.reduce((accum, builder): knex.QueryBuilder => {
-            return builder(accum)
+            return builder(accum);
         }, pg(name)).count()
-        .then(counts => counts)
-    }
+        .then(counts => counts);
+    };
 }
 
 function Fetch<T>(name: string): (builders: BuilderFn[]) => Bluebird<T[]> {
     return (builders: BuilderFn[]) => {
         return builders.reduce((accum, builder): knex.QueryBuilder => {
-            return builder(accum)
+            return builder(accum);
         }, pg(name))
-        .then(result => result)
-    }
+        .then(result => result);
+    };
 }
 
-function FetchJoin<T,K>(firstTable: string, secondTable: string, firstID: string, secondID: string): (builders: BuilderFn[]) => Bluebird<(T & K)[]> {
+function FetchJoin<T, K>(
+    firstTable: string,
+    secondTable: string,
+    firstID: string,
+    secondID: string,
+): (builders: BuilderFn[]) => Bluebird<Array<(T & K)>> {
     return (builders: BuilderFn[]) => {
         return builders.reduce((accum, builder): knex.QueryBuilder => {
-            return builder(accum)
+            return builder(accum);
         }, pg(firstTable).join(secondTable, firstID, secondID))
-        .then(result => result)
-    }
+        .then(result => result);
+    };
 }
 
 function FilterBy(filters: { [x: string]: knexValue }): BuilderFn {
-    return builder => builder.where(filters)
+    return builder => builder.where(filters);
 }
 
-function FilterIn(key: string, values: (string | number)[]): BuilderFn {
-    return builder => builder.whereIn(key, values)
+function FilterIn(key: string, values: Array<string | number>): BuilderFn {
+    return builder => builder.whereIn(key, values);
 }
 
 function FilterNotNull(key: string): BuilderFn {
-    return builder => builder.whereNotNull(key)
+    return builder => builder.whereNotNull(key);
 }
 
 function FilterNull(key: string): BuilderFn {
-    return builder => builder.whereNull(key)
+    return builder => builder.whereNull(key);
 }
 
 function Insert(obj: any, returning?: string[]): BuilderFn {
-    return builder => builder.insert(obj, returning)
+    return builder => builder.insert(obj, returning);
 }
 
 function Join(tableName: string, firstID: string, secondID: string): BuilderFn {
-    return builder => builder.innerJoin(tableName, firstID, secondID)
+    return builder => builder.innerJoin(tableName, firstID, secondID);
 }
 
 function Limit(n: number): BuilderFn {
-    return builder => builder.limit(n)
+    return builder => builder.limit(n);
 }
 
 function Offset(n: number): BuilderFn {
-    return builder => builder.offset(n)
+    return builder => builder.offset(n);
 }
 
 function Select(...keys: string[]): BuilderFn {
-    return builder => builder.select(...keys)
+    return builder => builder.select(...keys);
 }
 
 function Update(updateInfo: { [x: string]: knexValue }, returning?: string[]): BuilderFn {
-    return builder => builder.update(updateInfo, returning)
+    return builder => builder.update(updateInfo, returning);
 }
 
 export const ORM = {
     Count, Fetch, FetchJoin, FilterBy, FilterIn, FilterNotNull, FilterNull, Insert, Join, Limit, Offset, Select, Update,
-}
+};
 
 // export function FilterBy(key: string, value: string): BuilderFn {
 //     return builder => builder.where({[key]: value})
@@ -101,7 +106,7 @@ export const ORM = {
 // export function FilterIn(key: string, )
 
 export function Selector(names: string[]) {
-    return names.map((name: string) => (pg.raw(`to_json(${name}.*) as ${name}`)))
+    return names.map((name: string) => (pg.raw(`to_json(${name}.*) as ${name}`)));
 }
 
-export default pg
+export default pg;

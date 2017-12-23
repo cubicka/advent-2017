@@ -1,16 +1,16 @@
 declare module "*.json" {
     const value: any;
-    export default value;
+    export = value;
 }
 
 declare module "express-session/session/memory" {
     const value: any;
-    export default value;
+    export = value;
 }
 
 declare module "nexmo" {
     const value: any;
-    export default value;
+    export = value;
 }
 
 declare module "parsetrace" {

@@ -1,39 +1,38 @@
-import * as express from 'express'
-import { IsArray } from '../util/obj'
+import * as express from 'express';
+import { IsArray } from '../util/obj';
 
 function Reify(path: string) {
-    const routeSpecs = require(path).default
+    const routeSpecs = require(path).default;
 
-    let router: {[x:string]: any} = express.Router()
+    const router: {[x: string]: any} = express.Router();
     if ('use' in routeSpecs) {
         routeSpecs.use.forEach((name: string) => {
             if (typeof name === 'function') {
-                router.use(name)
-                return
+                router.use(name);
+                return;
             }
 
-            const childRouter = Reify(path + name)
-            router.use(name, childRouter)
-        })
+            const childRouter = Reify(path + name);
+            router.use(name, childRouter);
+        });
     }
 
-    const httpOps = ['get', 'post']
-    httpOps.forEach((ops) => {
+    const httpOps = ['get', 'post'];
+    httpOps.forEach(ops => {
         if (ops in routeSpecs) {
-            const specs = routeSpecs[ops]
-            const routerOps = router[ops]
+            const specs = routeSpecs[ops];
             if (IsArray(specs[0])) {
                 specs.forEach((spec: any[]) => {
-                    routerOps(...spec)
-                })
+                    router[ops](...spec);
+                });
             } else {
-                router[ops](...specs)
+                router[ops](...specs);
             }
         }
-    })
+    });
 
-    return router as express.Router
+    return router as express.Router;
 }
 
 // const ReifiedRouter = Reify('../routes')
-export default Reify('../routes')
+export default Reify('../routes');

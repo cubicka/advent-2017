@@ -1,45 +1,45 @@
-import express from 'express'
+import express from 'express';
 
-import PasswordTokens from '../../model/passwordTokens'
-import Users, { UserType } from '../../model/users'
-import Auth from '../../service/auth'
-import SMS from '../../service/sms'
-import { ProjectObj } from '../../util/obj'
-import * as Phone from '../../util/phone'
-import {IsParseNumber, IsString, IsPhone, Middleware} from '../../util/validation'
+import PasswordTokens from '../../model/passwordTokens';
+import Users, { UserType } from '../../model/users';
+import Auth from '../../service/auth';
+import SMS from '../../service/sms';
+import { ProjectObj } from '../../util/obj';
+import * as Phone from '../../util/phone';
+import {IsParseNumber, IsPhone, IsString, Middleware} from '../../util/validation';
 
 const signInSpecs = {
     body: {
         username: IsString,
         password: IsString,
         udid: IsString,
-    }
-}
+    },
+};
 
 function SignIn(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const username = Phone.Normalize(req.body.username)
+    const username = Phone.Normalize(req.body.username);
     return Auth.AuthenticateLogin({username, password: req.body.password})
-    .then((user) => {
+    .then(user => {
         if (user.type !== UserType.buyer) {
-            return res.send403('Autentikasi gagal')
+            return res.send403('Autentikasi gagal');
         }
 
-        req.kulakan.userID = user.id
-        next()
+        req.kulakan.userID = user.id;
+        next();
     })
-    .catch(err => res.send400(err.message))
+    .catch(err => res.send400(err.message));
 }
 
 function CreateToken(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const userID = req.kulakan.userID
+    const userID = req.kulakan.userID;
     return Auth.CreateToken(userID, req.body.udid)
-    .then((token) => {
-        res.send({token})
+    .then(token => {
+        res.send({token});
     })
-    .then((token) => {
-        res.send({ token })
+    .then(token => {
+        res.send({ token });
     })
-    .catch(err => res.send400(err.message))
+    .catch(err => res.send400(err.message));
 }
 
 const registrationSpecs = {
@@ -52,90 +52,90 @@ const registrationSpecs = {
         phone: IsString,
         stateID: IsParseNumber,
         cityID: IsParseNumber,
-    }
-}
+    },
+};
 
 function Register(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const {password} = req.body
-    let buyer = ProjectObj(req.body, ['name', 'shop', 'address', 'phone', 'stateID', 'cityID', 'zipcode'])
-    buyer.phone = Phone.Normalize(buyer.phone)
+    const {password} = req.body;
+    const buyer = ProjectObj(req.body, ['name', 'shop', 'address', 'phone', 'stateID', 'cityID', 'zipcode']);
+    buyer.phone = Phone.Normalize(buyer.phone);
 
     return Auth.RegisterBuyer({ password, username: buyer.phone }, buyer)
-    .then(buyer => {
-        req.kulakan.userID = buyer.userID
-        next()
+    .then(registeredBuyer => {
+        req.kulakan.userID = registeredBuyer.userID;
+        next();
     })
-    .catch(err => res.send400(err.message))
+    .catch(err => res.send400(err.message));
 }
 
 const forgotPassSpecs = {
     body: {
         phone: IsPhone,
-    }
-}
+    },
+};
 
 function UserByPhone(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const phone = Phone.Normalize(req.body.phone)
+    const phone = Phone.Normalize(req.body.phone);
     return Users.GetByUsername(phone)
     .then(users => {
         if (users.length === 0 || users[0].type !== UserType.buyer) {
-            throw new Error('User tidak ditemukan')
+            throw new Error('User tidak ditemukan');
         }
 
-        req.kulakan.user = users[0]
-        next()
+        req.kulakan.user = users[0];
+        next();
     })
-    .catch(err => res.send400(err.message))
+    .catch(err => res.send400(err.message));
 }
 
 function ForgotPassword(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const user = req.kulakan.user
+    const user = req.kulakan.user;
     return PasswordTokens.CreatePassToken(user.userID)
     .then(token => {
-        req.kulakan.token = token
-        next()
+        req.kulakan.token = token;
+        next();
     })
-    .catch(err => res.send400(err.message))
+    .catch(err => res.send400(err.message));
 }
 
 function SendSMS(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const { token, user } = req.kulakan
+    const { token, user } = req.kulakan;
     return SMS(user.username, 'kode verifikasi penggantian password: ' + token.toString())
-    .then((response) => {
+    .then(response => {
         res.send({
             status: 'verification code is sent',
-            temp: response
-        })
+            temp: response,
+        });
     })
-    .catch(err => res.send400(err.message))
+    .catch(err => res.send400(err.message));
 }
 
 const setPassSpecs = {
     body: {
         token: IsString,
         password: IsString,
-    }
-}
+    },
+};
 
 function ValidateToken(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const { token } = req.body
+    const { token } = req.body;
     return PasswordTokens.GetByToken(token)
     .then(tokens => {
-        req.kulakan.token = tokens[0]
-        next()
+        req.kulakan.token = tokens[0];
+        next();
     })
-    .catch(err => res.send400(err.message))
+    .catch(err => res.send400(err.message));
 }
 
 function ChangePassByToken(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const { password } = req.body
-    const token = req.kulakan.token
+    const { password } = req.body;
+    const token = req.kulakan.token;
 
     return Auth.ChangePassword(token.userID, password)
     .then(() => {
-        res.send({status: "Password telah diganti"})
+        res.send({status: 'Password telah diganti'});
     })
-    .catch(err => res.send400(err.message))
+    .catch(err => res.send400(err.message));
 }
 
 export default {
@@ -143,6 +143,6 @@ export default {
         ['/sign-in', Middleware(signInSpecs), SignIn, CreateToken],
         ['/register', Middleware(registrationSpecs), Register, CreateToken],
         ['/forgot-password', Middleware(forgotPassSpecs), UserByPhone, ForgotPassword, SendSMS],
-        ['/set-password', Middleware(setPassSpecs), ValidateToken, ChangePassByToken]
-    ]
-}
+        ['/set-password', Middleware(setPassSpecs), ValidateToken, ChangePassByToken],
+    ],
+};

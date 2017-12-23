@@ -1,8 +1,8 @@
-import Bluebird from 'bluebird'
+import Bluebird from 'bluebird';
 
-import { Omit } from '../util/type'
+import { Omit } from '../util/type';
 
-import { ORM, Table } from './index'
+import { ORM, Table } from './index';
 
 export enum UserType {
     admin = 'admin',
@@ -23,66 +23,66 @@ export interface User {
     verified?: boolean;
 }
 
-export const FetchUsers = ORM.Fetch<User>(Table.users)
+export const FetchUsers = ORM.Fetch<User>(Table.users);
 
-export function CreateUser(user: Omit<User,'id'>): Bluebird<User> {
+export function CreateUser(user: Omit<User, 'id'>): Bluebird<User> {
     return FetchUsers([ ORM.FilterBy({ username: user.username }) ])
     .then(users => {
-        if (users.length > 0 && users.some(user => user.verified === true)) throw new Error('User telah terdaftar')
+        if (users.length > 0 && users.some(u => u.verified === true)) throw new Error('User telah terdaftar');
 
         return FetchUsers([
-            ORM.Insert({ ...user }, ['id'])
+            ORM.Insert({ ...user }, ['id']),
         ])
-        .then(users => users[0])
-    })
+        .then(createdUsers => createdUsers[0]);
+    });
 }
 
 function GetByToken(token: string): Bluebird<User[]> {
-    return FetchUsers([ ORM.FilterBy({ token }) ])
+    return FetchUsers([ ORM.FilterBy({ token }) ]);
 }
 
 function GetByUsername(username: string): Bluebird<User[]> {
-    return FetchUsers([ ORM.FilterBy({username}) ])
+    return FetchUsers([ ORM.FilterBy({username}) ]);
 }
 
 function SetSaltHash(id: string, { salt, hash }: { salt: string, hash: string }) {
     return FetchUsers([ ORM.FilterBy({ id }) ])
     .then(users => {
-        if (users.length !== 1) throw new Error('User tidak ditemukan')
+        if (users.length !== 1) throw new Error('User tidak ditemukan');
         return FetchUsers([
             ORM.FilterBy({id}),
-            ORM.Update({ salt, hash })
-        ])
-    })
+            ORM.Update({ salt, hash }),
+        ]);
+    });
 }
 
 function SetToken(id: string, token: string, notificationID?: string): Bluebird<string> {
-    const builders = [ ORM.FilterBy({id}), ORM.Select('token', 'updated_at') ]
+    const builders = [ ORM.FilterBy({id}), ORM.Select('token', 'updated_at') ];
 
     return FetchUsers(builders)
     .then((users: User[]) => {
-        if (users.length === 0) throw new Error('User tidak ditemukan.')
+        if (users.length === 0) throw new Error('User tidak ditemukan.');
 
-        const now = new Date()
-        const lastUpdate = new Date(users[0].updated_at || '')
+        const now = new Date();
+        const lastUpdate = new Date(users[0].updated_at || '');
 
-        let targetToken = users[0].token || token
+        let targetToken = users[0].token || token;
         if (now.getTime() - lastUpdate.getTime() > 7 * 24 * 3600 * 1000) {
-            targetToken = token
+            targetToken = token;
         }
 
-        const builders = [
+        const updateBuilders = [
             ORM.FilterBy({id}),
             ORM.Update({
                 notificationID: notificationID || '',
                 token: targetToken,
                 updated_at: now,
-            })
-        ]
+            }),
+        ];
 
-        return FetchUsers(builders)
-        .then(() => (targetToken))
-    })
+        return FetchUsers(updateBuilders)
+        .then(() => (targetToken));
+    });
 }
 
 export default {
@@ -90,7 +90,7 @@ export default {
     GetByUsername,
     SetSaltHash,
     SetToken,
-}
+};
 
 // function FilterIDs(ids: string[]): BuilderFn {
 //     return ORM.FilterIn('id', ids)
@@ -373,7 +373,8 @@ export default {
 //     .innerJoin('seller_details', 'users.id', 'seller_details.userID')
 //     .where('shop', 'ilike', `%${name ? name : ""}%`)
 //     .where('verified', true)
-//     .select('userID', 'seller_details.id as id', 'name', 'ktp', 'birth', 'address', 'phone', 'cityID', 'stateID', 'shop', 'bankAccountNumber', 'bankID', 'bankBranch', 'type', 'name', 'verified', 'username')
+//     .select('userID', 'seller_details.id as id', 'name', 'ktp', 'birth', 'address', 'phone', 'cityID',
+//  'stateID', 'shop', 'bankAccountNumber', 'bankID', 'bankBranch', 'type', 'name', 'verified', 'username')
 //     .orderBy('shop')
 
 //     const count = pg('users')
@@ -397,7 +398,8 @@ export default {
 //     .where({type: 'seller'})
 //     .innerJoin('seller_details', 'users.id', 'seller_details.userID')
 //     .where('hasbeenverified', false)
-//     .select('userID', 'seller_details.id as id', 'name', 'ktp', 'birth', 'address', 'phone', 'cityID', 'stateID', 'shop', 'bankAccountNumber', 'bankID', 'bankBranch', 'type', 'name', 'hasbeenverified')
+//     .select('userID', 'seller_details.id as id', 'name', 'ktp', 'birth', 'address', 'phone', 'cityID',
+// 'stateID', 'shop', 'bankAccountNumber', 'bankID', 'bankBranch', 'type', 'name', 'hasbeenverified')
 
 //     const count = pg('users')
 //     .where({type: 'seller'})
@@ -458,4 +460,3 @@ export default {
 // export const Admin = {
 //     Buyers, ByIDs, WS, WSNeedVerification, WSNeedVerificationCount, VerifyWS, Seller, Buyer, UpdateImageSeller,
 // }
-

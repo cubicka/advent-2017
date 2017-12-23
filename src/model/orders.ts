@@ -1,9 +1,9 @@
-import Bluebird from 'bluebird'
+import Bluebird from 'bluebird';
 
-import pg, { BuilderFn, ORM, Selector, Table } from "./index"
-import { Buyer } from './buyers'
-import { AddItems } from './orderItems'
-import { Seller } from './sellers'
+import { Buyer } from './buyers';
+import pg, { BuilderFn, ORM, Selector, Table } from './index';
+import { AddItems } from './orderItems';
+import { Seller } from './sellers';
 
 interface Order {
     accepted?: string;
@@ -50,21 +50,22 @@ interface OrderList {
     orders: DetailedOrder[];
 }
 
-const CountOrder = ORM.Count(Table.orders)
+const CountOrder = ORM.Count(Table.orders);
+// const FetchOrderSimple = ORM.Fetch<Order>(Table.orders)
 
 function FetchOrder(builders: BuilderFn[]): Bluebird<DetailedOrder[]> {
-    const selector = Selector(['details', 'seller', 'buyer'])
-    
+    const selector = Selector(['details', 'seller', 'buyer']);
+
     const baseBuilder = pg.select(...selector)
     .from('orders as details')
     .innerJoin('seller_details as seller', 'details.sellerID', 'seller.userID')
     .innerJoin('buyer_details as buyer', 'details.buyerID', 'buyer.userID')
-    .orderBy('details.id', 'desc')
+    .orderBy('details.id', 'desc');
 
     return builders.reduce((accum, builder) => {
-        return builder(accum)
+        return builder(accum);
     }, baseBuilder)
-    .then(result => result)
+    .then(result => result);
 }
 
 function OrderStatusFilter(status: OrderStatus): BuilderFn[] {
@@ -72,46 +73,46 @@ function OrderStatusFilter(status: OrderStatus): BuilderFn[] {
         case OrderStatus.created: return [
             ORM.FilterNull(OrderStatus.accepted),
             ORM.FilterNull(OrderStatus.cancelled),
-        ]
+        ];
 
         case OrderStatus.accepted: return [
             ORM.FilterNotNull(OrderStatus.accepted),
             ORM.FilterNull(OrderStatus.pickedup),
             ORM.FilterNull(OrderStatus.cancelled),
-        ]
+        ];
 
         case OrderStatus.assigned: return [
             ORM.FilterNotNull(OrderStatus.assigned),
             ORM.FilterNull(OrderStatus.pickedup),
             ORM.FilterNull(OrderStatus.cancelled),
-        ]
+        ];
 
         case OrderStatus.pickedup: return [
             ORM.FilterNotNull(OrderStatus.pickedup),
             ORM.FilterNull(OrderStatus.delivered),
             ORM.FilterNull(OrderStatus.cancelled),
-        ]
+        ];
 
         case OrderStatus.delivered: return [
             ORM.FilterNotNull(OrderStatus.delivered),
             ORM.FilterNull(OrderStatus.cancelled),
-        ]
+        ];
 
         case OrderStatus.cancelled: return [
             ORM.FilterNotNull(OrderStatus.cancelled),
-        ]
+        ];
 
-        default: return []
+        default: return [];
     }
 }
 
 function List(baseBuilders: BuilderFn[], params: OrderParams): Bluebird<OrderList> {
     let builders = [
         ...baseBuilders,
-    ]
+    ];
 
     if (params.status) {
-        builders = builders.concat(OrderStatusFilter(params.status))
+        builders = builders.concat(OrderStatusFilter(params.status));
     }
 
     return Bluebird.all([
@@ -127,22 +128,40 @@ function List(baseBuilders: BuilderFn[], params: OrderParams): Bluebird<OrderLis
         return {
             orders,
             count: counts[0].count,
-        }
-    })
+        };
+    });
 }
 
 function ListByBuyer(buyerID: string, params: OrderParams) {
-    return List([ ORM.FilterBy({ buyerID }) ], params)
+    return List([ ORM.FilterBy({ buyerID }) ], params);
 }
 
 function ListBySeller(sellerID: string, params: OrderParams) {
-    return List([ ORM.FilterBy({ sellerID }) ], params)
+    return List([ ORM.FilterBy({ sellerID }) ], params);
 }
+
+function ListUnread(userID: string) {
+    return CountOrder([
+        ORM.FilterBy({ read: false, sellerID: userID }),
+    ])
+    .then(result => {
+        return result.length > 0 ? result[0].count : 0;
+    });
+}
+
+//     Unread(userID) {
+//         return pg('orders').where({read: false, sellerID: userID}).count()
+//         .then((result) => {
+//             if (!result || !result.length || result.length === 0 || !result[0] || !result[0].count) return 0
+//             return result[0].count
+//         })
+//     },
 
 export default {
     ListByBuyer,
     ListBySeller,
-}
+    ListUnread,
+};
 
 // export function OfWhere(whereClause) {
 //     const selector = Selector(['details', 'seller', 'buyer'])
@@ -317,7 +336,8 @@ export default {
 
 //             // const validAdd = additionals.reduce((accum, item) => {
 //             //     if (!accum) return false
-//             //     // const prevItem = order.version[latestRevision].additionals.find((i) => (i.name === item.name && i.unit === item.unit))
+//             //     // const prevItem = order.version[latestRevision].additionals.find(
+//    (i) => (i.name === item.name && i.unit === item.unit))
 //             //     // if (!prevItem) return false
 //             //     // if (prevItem.quantity < item.quantity) return false
 //             //     return true
@@ -397,7 +417,8 @@ export default {
 
 //             const validAdd = additionals.reduce((accum, item) => {
 //                 if (!accum) return false
-//                 const prevItem = order.version[latestRevision].additionals.find((i) => (i.name === item.name && i.unit === item.unit))
+//                 const prevItem = order.version[latestRevision].additionals.find(
+//    (i) => (i.name === item.name && i.unit === item.unit))
 //                 if (!prevItem) return false
 //                 // if (prevItem.quantity < item.quantity) return false
 //                 return true
@@ -479,7 +500,8 @@ export default {
 // }
 
 // function AllOrders(sellerID, startDate, endDate) {
-//     return OfWhere({sellerID}).andWhere('details.created', '>=', startDate).andWhere('details.created', '<=', endDate).then(AddItems).map(LatestVersion).map((order) => {
+//     return OfWhere({sellerID}).andWhere('details.created', '>=', startDate)
+// .andWhere('details.created', '<=', endDate).then(AddItems).map(LatestVersion).map((order) => {
 //         const allItems = order.latestAdds.concat(order.latestItems)
 //         return {
 //             buyer: order.buyer.shop,
@@ -553,7 +575,8 @@ export default {
 //         .then((orders) => {
 //             return Promise.reduce(orders, (_, order) => {
 //                 const latestVersion = Math.max(...Object.keys(order.version))
-//                 return SetFavorites(order.seller.userID, order.buyer.userID, order.version[latestVersion.toString()].items.map((item) => (item.itemID)))
+//                 return SetFavorites(order.seller.userID,
+//  order.buyer.userID, order.version[latestVersion.toString()].items.map((item) => (item.itemID)))
 //             }, {})
 //             .then(() => (orders))
 //             .catch(() => (orders))
@@ -569,16 +592,10 @@ export default {
 
 //             const order = orders[0]
 //             if (order.delivered) return {}
-//             return pg('orders').where({id: orderID, sellerID: userID}).update({cancelled: new Date(), notes, cancelledby: 'seller'}, ['id', 'cancelled'])
+//             return pg('orders').where({id: orderID, sellerID: userID})
+// .update({cancelled: new Date(), notes, cancelledby: 'seller'}, ['id', 'cancelled'])
 //         })
 //         .then(() => (OfWhere({'details.id': orderID, sellerID: userID})))
-//     },
-//     Unread(userID) {
-//         return pg('orders').where({read: false, sellerID: userID}).count()
-//         .then((result) => {
-//             if (!result || !result.length || result.length === 0 || !result[0] || !result[0].count) return 0
-//             return result[0].count
-//         })
 //     },
 //     AllOrders,
 // }
