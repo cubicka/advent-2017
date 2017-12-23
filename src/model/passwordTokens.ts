@@ -1,4 +1,4 @@
-import Bluebird from 'bluebird';
+import * as Bluebird from 'bluebird';
 
 import { getRandomIntInclusive } from '../util/num';
 

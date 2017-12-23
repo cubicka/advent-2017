@@ -1,11 +1,11 @@
-import Bluebird from 'bluebird';
+import * as Bluebird from 'bluebird';
 
 import { Buyer } from './buyers';
 import pg, { BuilderFn, ORM, Selector, Table } from './index';
-import { AddItems } from './orderItems';
+import { AddItems, OrderItemsList } from './orderItems';
 import { Seller } from './sellers';
 
-interface Order {
+export interface Order {
     accepted?: string;
     address?: string;
     assigned?: string;
@@ -28,15 +28,16 @@ export interface DetailedOrder {
     buyer: Buyer;
     details: Order;
     seller: Seller;
+    version: OrderItemsList;
 }
 
 enum OrderStatus {
-    accepted = 'accepted',
-    assigned = 'assigned',
-    cancelled = 'cancelled',
-    created = 'created',
-    delivered = 'delivered',
-    pickedup = 'pickedup',
+    accepted = 'details.accepted',
+    assigned = 'details.assigned',
+    cancelled = 'details.cancelled',
+    created = 'details.created',
+    delivered = 'details.delivered',
+    pickedup = 'details.pickedup',
 }
 
 interface OrderParams {
@@ -45,27 +46,55 @@ interface OrderParams {
     status?: OrderStatus;
 }
 
-interface OrderList {
+interface DetailedOrderList {
     count: number;
     orders: DetailedOrder[];
 }
 
 const CountOrder = ORM.Count(Table.orders);
-// const FetchOrderSimple = ORM.Fetch<Order>(Table.orders)
 
-function FetchOrder(builders: BuilderFn[]): Bluebird<DetailedOrder[]> {
+function FetchOrderWithCount(
+    orderBuilders: BuilderFn[],
+    sellerBuilders: BuilderFn[] = [],
+    buyerBuilders: BuilderFn[] = [],
+    limit: number,
+    offset: number,
+): Bluebird<DetailedOrderList> {
     const selector = Selector(['details', 'seller', 'buyer']);
+
+    const buyerBuilt = buyerBuilders.reduce((accum, builder) => {
+        return builder(accum);
+    }, pg(Table.buyers));
+
+    const sellerBuilt = sellerBuilders.reduce((accum, builder) => {
+        return builder(accum);
+    }, pg(Table.sellers));
 
     const baseBuilder = pg.select(...selector)
     .from('orders as details')
-    .innerJoin('seller_details as seller', 'details.sellerID', 'seller.userID')
-    .innerJoin('buyer_details as buyer', 'details.buyerID', 'buyer.userID')
-    .orderBy('details.id', 'desc');
+    .join(pg.raw('(' + sellerBuilt + ') as seller'), 'details.sellerID', 'seller.userID')
+    .join(pg.raw('(' + buyerBuilt + ') as buyer'), 'details.buyerID', 'buyer.userID')
+    .orderBy('details.id', 'desc')
+    .limit(limit).offset(offset);
 
-    return builders.reduce((accum, builder) => {
-        return builder(accum);
-    }, baseBuilder)
-    .then(result => result);
+    const countBuilder = pg.from('orders as details')
+    .join(pg.raw('(' + sellerBuilt + ') as seller'), 'details.sellerID', 'seller.userID')
+    .join(pg.raw('(' + buyerBuilt + ') as buyer'), 'details.buyerID', 'buyer.userID');
+
+    const completeQuery = orderBuilders.reduce((accum, builder) => {
+        return accum.map(builder);
+    }, [baseBuilder, countBuilder]);
+
+    return Bluebird.all([
+        completeQuery[0].then(result => result),
+        completeQuery[1].count('details.id'),
+    ])
+    .then(([orders, counts]: [DetailedOrder[], Array<{ count: number }>]) => {
+        return {
+            count: counts[0].count,
+            orders,
+        };
+    });
 }
 
 function OrderStatusFilter(status: OrderStatus): BuilderFn[] {
@@ -106,58 +135,63 @@ function OrderStatusFilter(status: OrderStatus): BuilderFn[] {
     }
 }
 
-function List(baseBuilders: BuilderFn[], params: OrderParams): Bluebird<OrderList> {
+function List(
+    orderBuilders: BuilderFn[],
+    sellerBuilders: BuilderFn[],
+    buyerBuilders: BuilderFn[],
+    params: OrderParams,
+): Bluebird<DetailedOrderList> {
     let builders = [
-        ...baseBuilders,
+        ...orderBuilders,
     ];
 
-    if (params.status) {
+    if (params.status !== undefined) {
+        console.log('params.status', params.status);
         builders = builders.concat(OrderStatusFilter(params.status));
     }
 
-    return Bluebird.all([
-        FetchOrder([
-            ...builders,
-            ORM.Limit(params.limit),
-            ORM.Offset(params.offset),
-        ])
-        .then(AddItems),
-        CountOrder(builders),
-    ])
-    .then(([orders, counts]) => {
-        return {
-            orders,
-            count: counts[0].count,
-        };
+    return FetchOrderWithCount([
+        ...builders,
+    ], sellerBuilders, buyerBuilders, params.limit, params.offset)
+    .then(orders => {
+        return AddItems(orders.orders)
+        .then(ordersWithItems => {
+            return {
+                count: orders.count,
+                orders: ordersWithItems,
+            };
+        });
     });
 }
 
 function ListByBuyer(buyerID: string, params: OrderParams) {
-    return List([ ORM.FilterBy({ buyerID }) ], params);
+    return List([ ORM.FilterBy({ buyerID }) ], [], [ORM.FilterBy({ userID: buyerID })], params);
 }
 
 function ListBySeller(sellerID: string, params: OrderParams) {
-    return List([ ORM.FilterBy({ sellerID }) ], params);
+    return List([ ORM.FilterBy({ sellerID }) ], [ORM.FilterBy({ userID: sellerID })], [], params);
+}
+
+function Details(sellerID: string, orderID: string) {
+    return List([ ORM.FilterBy({ sellerID, 'details.id': orderID }) ], [ORM.FilterBy({ userID: sellerID })], [], {
+        limit: 1,
+        offset: 0,
+    })
+    .then(orders => {
+        if (orders.orders.length === 0) throw new Error('Order tidak ditemukan.');
+        return orders.orders[0];
+    });
 }
 
 function ListUnread(userID: string) {
     return CountOrder([
         ORM.FilterBy({ read: false, sellerID: userID }),
     ])
-    .then(result => {
-        return result.length > 0 ? result[0].count : 0;
-    });
+    .then(result => result);
 }
 
-//     Unread(userID) {
-//         return pg('orders').where({read: false, sellerID: userID}).count()
-//         .then((result) => {
-//             if (!result || !result.length || result.length === 0 || !result[0] || !result[0].count) return 0
-//             return result[0].count
-//         })
-//     },
-
 export default {
+    Details,
     ListByBuyer,
     ListBySeller,
     ListUnread,
@@ -197,60 +231,6 @@ export default {
 //     }, [])
 // }
 
-// function CreateOrderItems(id, items, timestamp) {
-//     const validItems = items.filter((item) => (item.quantity >= 0))
-//     const priceIDs = validItems.map((item) => (item.priceID))
-//     return pg('item_prices').whereIn('id', priceIDs)
-//     .then((prices) => {
-//         const itemIDs = prices.map((price) => (price.itemID))
-//         const priceIDToPrice = prices.reduce((accum, price) => {
-//             accum[price.id] = price
-//             return accum
-//         }, {})
-
-//         return pg('katalog').whereIn('id', itemIDs)
-//         .then((katalog) => {
-//             const rows = validItems.map((item) => {
-//                 const price = priceIDToPrice[item.priceID]
-
-//                 return {
-//                     orderID: id,
-//                     itemID: price.itemID,
-//                     unit: price.unit,
-//                     quantity: item.quantity,
-//                     price: price.price,
-//                     priceID: price.id,
-//                     revision: timestamp.getTime(),
-//                 }
-//             })
-
-//             return pg('order_items').insert(rows)
-//         })
-//     })
-// }
-
-// function AddAdditionals(id, additionals, timestamp) {
-//     const adds = additionals.filter((add) => {
-//         const {name, quantity, unit, price} = add
-//         if (!name || typeof name !== 'string') return false
-//         if (!unit || typeof unit !== 'string') return false
-//         if (quantity === undefined || isNaN(parseInt(quantity)) || parseInt(quantity,10) < 0) return false
-//         if (price === undefined || isNaN(parseInt(price, 10))) return false
-//         return true
-//     }).map((add) => {
-//         const {name, quantity, unit, price} = add
-//         return {
-//             name, unit,
-//             price: parseInt(price),
-//             quantity: parseInt(quantity),
-//             orderID: id,
-//             revision: timestamp.getTime(),
-//         }
-//     })
-
-//     return pg('additionals').insert(adds)
-// }
-
 // function SetFavorites(sellerID, buyerID, itemIDs) {
 //     return Promise.reduce(itemIDs, (_, itemID) => {
 //         return pg('favorites').where({sellerID, buyerID, itemID})
@@ -276,169 +256,6 @@ export default {
 //             return
 //         })
 //         .then(() => (id))
-//     })
-// }
-
-// function DraftOrder(userID, {orderID, items, additionals}) {
-//     return OfWhere({'details.id': orderID, sellerID: userID})
-//     .then((orders) => {
-//         if (orders.length === 0) {
-//             return {
-//                 message: 'Order not found.'
-//             }
-//         }
-
-//         if (orders[0].details.assigned || orders[0].details.cancelled) {
-//             return {
-//                 message: 'Order cant be changed.'
-//             }
-//         }
-
-//         return AddItems(orders)
-//         .then((ordersWithItems) => {
-//             const itemsSpecs = [{
-//                 priceID: IsParseNumber,
-//                 quantity: IsParseNumber,
-//             }]
-
-//             const additionalsSpecs = [{
-//                 name: IsString,
-//                 unit: IsString,
-//                 price: IsParseNumber,
-//                 quantity: IsParseNumber,
-//             }]
-
-//             if (!Validation(itemsSpecs)(items) || !Validation(additionalsSpecs)(additionals)) {
-//                 return [{
-//                     message: 'Invalid request.'
-//                 }]
-//             }
-
-//             const order = ordersWithItems[0]
-//             const latestRevision = Object.keys(order.version).reduce((accum, s) => {
-//                 return Math.max(accum, parseInt(s, 10))
-//             }, 0)
-
-//             // const validItem = items.reduce((accum, item) => {
-//             //     if (!accum) return false
-//             //     // const prevItem = order.version[latestRevision].items.find((i) => (i.priceID === item.priceID))
-//             //     // if (!prevItem) return false
-//             //     // if (prevItem.quantity < item.quantity) return false
-//             //     return true
-//             // }, true)
-//             const validItem = true
-
-//             if (!validItem) {
-//                 return [{
-//                     message: "Invalid items."
-//                 }]
-//             }
-
-//             // const validAdd = additionals.reduce((accum, item) => {
-//             //     if (!accum) return false
-//             //     // const prevItem = order.version[latestRevision].additionals.find(
-//    (i) => (i.name === item.name && i.unit === item.unit))
-//             //     // if (!prevItem) return false
-//             //     // if (prevItem.quantity < item.quantity) return false
-//             //     return true
-//             // }, true)
-//             const validAdd = true
-
-//             if (!validAdd) {
-//                 return [{
-//                     message: "Invalid additionals."
-//                 }]
-//             }
-
-//             const now = new Date()
-//             return CreateOrderItems(orderID, items, now)
-//             .then(() => {
-//                 if (additionals) return AddAdditionals(orderID, additionals, now)
-//                 return
-//             })
-//             .then(() => (AddItems(orders)))
-//         })
-//     })
-// }
-
-// function AcceptOrder(userID, {orderID, items, additionals}, notes = "") {
-//     return OfWhere({'details.id': orderID, sellerID: userID})
-//     .then((orders) => {
-//         if (orders.length === 0) {
-//             return {
-//                 message: 'Order not found.'
-//             }
-//         }
-
-//         if (orders[0].details.accepted || orders[0].details.cancelled) {
-//             return {
-//                 message: 'Order cant be accepted.'
-//             }
-//         }
-
-//         return AddItems(orders)
-//         .then((ordersWithItems) => {
-//             const itemsSpecs = [{
-//                 priceID: IsParseNumber,
-//                 quantity: IsParseNumber,
-//             }]
-
-//             const additionalsSpecs = [{
-//                 name: IsString,
-//                 unit: IsString,
-//                 price: IsParseNumber,
-//                 quantity: IsParseNumber,
-//             }]
-
-//             if (!Validation(itemsSpecs)(items) || !Validation(additionalsSpecs)(additionals)) {
-//                 return [{
-//                     message: 'Invalid request.'
-//                 }]
-//             }
-
-//             const order = ordersWithItems[0]
-//             const latestRevision = Object.keys(order.version).reduce((accum, s) => {
-//                 return Math.max(accum, parseInt(s, 10))
-//             }, 0)
-
-//             const validItem = items.reduce((accum, item) => {
-//                 if (!accum) return false
-//                 const prevItem = order.version[latestRevision].items.find((i) => (i.priceID === item.priceID))
-//                 if (!prevItem) return false
-//                 // if (prevItem.quantity < item.quantity) return false
-//                 return true
-//             }, true)
-
-//             if (!validItem) {
-//                 return [{
-//                     message: "Invalid items."
-//                 }]
-//             }
-
-//             const validAdd = additionals.reduce((accum, item) => {
-//                 if (!accum) return false
-//                 const prevItem = order.version[latestRevision].additionals.find(
-//    (i) => (i.name === item.name && i.unit === item.unit))
-//                 if (!prevItem) return false
-//                 // if (prevItem.quantity < item.quantity) return false
-//                 return true
-//             }, true)
-
-//             if (!validAdd) {
-//                 return [{
-//                     message: "Invalid additionals."
-//                 }]
-//             }
-
-//             const now = new Date()
-//             return pg('orders').where({id: orderID}).update({accepted: new Date(), notes}, ['id', 'accepted'])
-//             .then(() => (CreateOrderItems(orderID, items, now)))
-//             .then(() => {
-//                 if (additionals) return AddAdditionals(orderID, additionals, now)
-//                 return
-//             })
-//             .then(() => (AddItems(orders)))
-//         })
 //     })
 // }
 

@@ -1,4 +1,4 @@
-import Bluebird from 'bluebird';
+import * as Bluebird from 'bluebird';
 
 import { Omit } from '../util/type';
 
@@ -40,7 +40,9 @@ function CreateSeller(seller: Omit<Seller, 'userID'>, userData: Omit<User, 'id'>
 
 function GetByPhone(phone: string): Bluebird<Array<User & Seller>> {
     return FetchUsersSellers([
-        ORM.FilterBy({ phone, type: UserType.seller }),
+        ORM.FilterBy({ type: UserType.seller }),
+    ], [
+        ORM.FilterBy({ phone }),
     ])
     .then(users => {
         if (users.length === 0) {

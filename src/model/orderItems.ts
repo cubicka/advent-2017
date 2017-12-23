@@ -1,23 +1,12 @@
-import Bluebird from 'bluebird';
-import lodash from 'lodash';
+import * as Bluebird from 'bluebird';
+import * as lodash from 'lodash';
 
 import { ORM, Table } from './index';
-// import pg, { BuilderFn, ORM, Selector, Table } from './index';
+import { FetchItemPricesByIDs, ItemPrices } from './itemPrices';
+import { Katalog } from './katalog';
 import { DetailedOrder } from './orders';
 
-interface Katalog {
-    category?: string;
-    description?: string;
-    id: number;
-    image?: string;
-    name: string;
-    price?: number;
-    principalID: number;
-    priority: number;
-    sku: string;
-}
-
-interface OrderItems {
+export interface OrderItems {
     itemID: number;
     orderID: number;
     price: number;
@@ -27,7 +16,7 @@ interface OrderItems {
     unit: string;
 }
 
-interface OrderAdditionals {
+export interface OrderAdditionals {
     name: string;
     orderID: number;
     price: number;
@@ -36,7 +25,7 @@ interface OrderAdditionals {
     unit: string;
 }
 
-interface OrderItemsList {
+export interface OrderItemsList {
     [x: string]: {
         items: OrderItems[];
         additionals: OrderAdditionals[];
@@ -44,20 +33,7 @@ interface OrderItemsList {
 }
 
 const FetchOrderAdditionals = ORM.Fetch<OrderAdditionals>(Table.additionals);
-// function FetchItems(builders: BuilderFn[]): Bluebird<DetailedOrder[]> {
-//     const selector = Selector(['items', 'katalog', 'ws']);
-
-//     const baseBuilder = pg.select(...selector)
-//         .from('item_prices as items')
-//         .innerJoin('katalog as katalog', 'katalog.id', '')
-//         .innerJoin('buyer_details as buyer', 'details.buyerID', 'buyer.userID')
-//         .orderBy('details.id', 'desc');
-
-//     return builders.reduce((accum, builder) => {
-//         return builder(accum);
-//     }, baseBuilder)
-//     .then(result => result);
-// }
+const FetchOrderItems = ORM.Fetch<OrderItems>(Table.orderItems);
 
 const FetchKatalogOrderItems = ORM.FetchJoin<OrderItems, Katalog>(
     Table.katalog, Table.orderItems,
@@ -69,7 +45,6 @@ export function AddItems(orders: DetailedOrder[]) {
     const ids = orders.map(order => (order.details.id));
     return Bluebird.all([
         FetchKatalogOrderItems([
-            ORM.FilterIn('orderID', ids),
             ORM.Select(
                 'orderID',
                 'itemID',
@@ -82,6 +57,8 @@ export function AddItems(orders: DetailedOrder[]) {
                 'revision',
                 'category',
             ),
+        ], [
+            ORM.FilterIn('orderID', ids),
         ]),
         FetchOrderAdditionals([
             ORM.FilterIn('orderID', ids),
@@ -111,6 +88,75 @@ export function AddItems(orders: DetailedOrder[]) {
     });
 }
 
+export function CreateOrderItems(
+    orderID: string,
+    items: Array<{priceID: string, quantity: string}>,
+    timestamp: Date,
+) {
+    const validItems = items.filter(item => (parseInt(item.quantity, 10) > 0));
+    const priceIDs = validItems.map(item => (item.priceID));
+
+    return FetchItemPricesByIDs(priceIDs)
+    .then(prices => {
+        const priceIDToPrice = prices.reduce((accum, price) => {
+            accum[price.id] = price;
+            return accum;
+        }, {} as {[x: string]: ItemPrices});
+
+        const rows = validItems.map(item => {
+            const price = priceIDToPrice[item.priceID];
+
+            return {
+                orderID,
+                itemID: price.itemID,
+                unit: price.unit,
+                quantity: item.quantity,
+                price: price.price,
+                priceID: price.id,
+                revision: timestamp.getTime(),
+            };
+        });
+
+        return FetchOrderItems([
+            ORM.Insert(rows),
+        ]);
+    });
+}
+
+export function CreateOrderAdditionals(
+    orderID: string,
+    additionals: Array<{ name: string, quantity: string, unit: string, price: string}>,
+    timestamp: Date,
+) {
+    if (additionals.length === 0) return [];
+
+    const adds = additionals.filter(add => {
+        const {name, quantity, unit, price} = add;
+
+        if (!name || typeof name !== 'string') return false;
+        if (!unit || typeof unit !== 'string') return false;
+        if (quantity === undefined || isNaN(parseInt(quantity, 10)) || parseInt(quantity, 10) < 0) return false;
+        if (price === undefined || isNaN(parseInt(price, 10))) return false;
+
+        return true;
+    }).map(add => {
+        const {name, quantity, unit, price} = add;
+
+        return {
+            name, orderID, unit,
+            price: parseInt(price, 10),
+            quantity: parseInt(quantity, 10),
+            revision: timestamp.getTime(),
+        };
+    });
+
+    return FetchOrderAdditionals([
+        ORM.Insert(adds),
+    ]);
+}
+
 export default {
     AddItems,
+    CreateOrderAdditionals,
+    CreateOrderItems,
 };

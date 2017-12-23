@@ -1,4 +1,4 @@
-import Bluebird from 'bluebird';
+import * as Bluebird from 'bluebird';
 
 import { Omit } from '../util/type';
 

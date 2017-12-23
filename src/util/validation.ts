@@ -20,7 +20,7 @@ function ValidationObj(specs: {[x: string]: any}): (x: {[x: string]: any}) => bo
         if (!specs) return true;
 
         return Object.keys(specs).reduce((isValidated, attr) => {
-            if (isValidated === false || !(attr in obj)) return false;
+            if (isValidated === false) return false;
             return Validation(specs[attr])(obj[attr]);
         }, true);
     };
@@ -57,6 +57,13 @@ export function ComposeOr(...specs: any[]): (x: any) => boolean {
 
 export function IsNumber(x: number): boolean {
     return (typeof x === 'number') && !isNaN(x);
+}
+
+export function IsOptional(specs: any) {
+    return (obj: any) => {
+        if (obj === undefined) return true;
+        return Validation(specs)(obj);
+    };
 }
 
 export function IsParseDate(s: string): boolean {
