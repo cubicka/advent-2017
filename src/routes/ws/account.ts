@@ -1,14 +1,3 @@
-// import lodash from 'lodash'
-// import {ParseLimitOffset} from '../middleware/helper'
-// import {Seller as Orders} from '../../model/orders'
-// import Users from '../../model/users'
-// import S3Middleware from '../../util/s3'
-// import fetch from 'node-fetch'
-// import Auth from '../../auth'
-// import {IsParseDate, IsParseNumber, IsString, Middleware} from '../../util/validation'
-// import Dashboard, {AggregateBuyersReport, BuyerReport, ExportOrders} from '../../model/dashboard'
-// import {SMS} from '../../util/s3'
-
 import express from 'express';
 
 import Dashboard from '../../model/dashboard';
@@ -47,17 +36,17 @@ function DashboardPipe(req: express.Request, res: express.Response, next: expres
     });
 }
 
-// function ReportPipe(req: express.Request, res: express.Response, next: express.NextFunction) {
-//     const user = req.kulakan.user;
-//     const {startDate, endDate} = req.query;
+function ReportPipe(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const user = req.kulakan.user;
+    const {startDate, endDate} = req.query;
 
-//     return Dashboard.ExportOrders(
-//         res,
-//         user.id,
-//         new Date(parseInt(startDate, 10) * 1000),
-//         new Date(parseInt(endDate, 10) * 1000),
-//     );
-// }
+    return Dashboard.ExportOrders(
+        res,
+        user.id,
+        new Date(parseInt(startDate, 10) * 1000),
+        new Date(parseInt(endDate, 10) * 1000),
+    );
+}
 
 // function BuyersReport(req: express.Request, res: express.Response, next: express.NextFunction) {
 //     const user = req.kulakan.user;
@@ -150,7 +139,7 @@ export default {
     get: [
         ['/', UserDetail],
         ['/dashboard', Middleware(dashboardSpecs), DashboardPipe],
-        // ['/dashboard/report', Middleware(dashboardSpecs), ReportPipe],
+        ['/dashboard/report', Middleware(dashboardSpecs), ReportPipe],
         // ['/buyer-reports', Middleware(dashboardSpecs), BuyersReport],
         // ['/buyer-reports/:id(\\d+)', Middleware(dashboardSpecs), BuyerReportDetails],
         // ['/general-report', Middleware(dashboardSpecs), AllOrders],

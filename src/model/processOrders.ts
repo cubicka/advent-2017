@@ -27,12 +27,12 @@ function Accept(sellerID: string, { orderID, items, additionals }: ProcessOrderP
             ORM.Where({ id: orderID }),
             ORM.Update({accepted: now, notes}),
         ])
-        .then(() => (CreateOrderItems(orderID, items, now)))
+        .then(() => (CreateOrderItems(parseInt(orderID, 10), items, now)))
         .then(() => {
             if (additionals === undefined) return;
-            CreateOrderAdditionals(orderID, additionals, now);
+            CreateOrderAdditionals(parseInt(orderID, 10), additionals, now);
         })
-        .then(() => Orders.Details(sellerID, orderID));
+        .then(() => Orders.DetailsBySeller(sellerID, orderID));
     });
 }
 
@@ -49,12 +49,12 @@ function Draft(sellerID: string, {orderID, items, additionals}: ProcessOrderPara
         }
 
         const now = new Date();
-        return CreateOrderItems(orderID, items, now)
+        return CreateOrderItems(parseInt(orderID, 10), items, now)
         .then(() => {
             if (additionals === undefined) return;
-            CreateOrderAdditionals(orderID, additionals, now);
+            CreateOrderAdditionals(parseInt(orderID, 10), additionals, now);
         })
-        .then(() => Orders.Details(sellerID, orderID));
+        .then(() => Orders.DetailsBySeller(sellerID, orderID));
     });
 }
 
@@ -74,11 +74,34 @@ function Assign(sellerID: string, orderID: string) {
             ORM.Where({ id: orderID }),
             ORM.Update({assigned: new Date()}),
         ])
-        .then(() => Orders.Details(sellerID, orderID));
+        .then(() => Orders.DetailsBySeller(sellerID, orderID));
     });
 }
 
-function Deliver(sellerID: string, orderID: string) {
+function DeliverByBuyer(buyerID: string, orderID: string) {
+    return FetchOrders([
+        ORM.Where({ id: orderID, buyerID }),
+    ])
+    .then(orders  => {
+        if (orders.length === 0) throw new Error('Pesanan tidak ditemukan.');
+
+        const order = orders[0];
+        if (order.delivered || !order.accepted || order.cancelled) {
+            throw new Error('Status pesanan tidak dapat diubah menjadi deliver.');
+        }
+
+        const now = new Date();
+        return FetchOrders([
+            ORM.Where({ id: orderID, buyerID }),
+            ORM.Update({
+                delivered: now,
+            }),
+        ]);
+    })
+    .then(() => Orders.DetailsByBuyer(buyerID, orderID));
+}
+
+function DeliverBySeller(sellerID: string, orderID: string) {
     return FetchOrders([
         ORM.Where({ id: orderID, sellerID }),
     ])
@@ -100,10 +123,28 @@ function Deliver(sellerID: string, orderID: string) {
             }),
         ]);
     })
-    .then(() => Orders.Details(sellerID, orderID));
+    .then(() => Orders.DetailsBySeller(sellerID, orderID));
 }
 
-function Cancel(sellerID: string, orderID: string, notes: string = '') {
+function CancelByBuyer(buyerID: string, orderID: string, notes: string = '') {
+    return FetchOrders([
+        ORM.Where({ id: orderID, buyerID }),
+    ])
+    .then(orders  => {
+        if (orders.length === 0) throw new Error('Pesanan tidak ditemukan.');
+
+        const order = orders[0];
+        if (order.delivered) throw new Error('Pesanan tidak dapat dibatalkan.');
+
+        return FetchOrders([
+            ORM.Where({ id: orderID, buyerID }),
+            ORM.Update({ cancelled: new Date(), cancelledby: 'buyer', notes }),
+        ]);
+    })
+    .then(() => Orders.DetailsByBuyer(buyerID, orderID));
+}
+
+function CancelBySeller(sellerID: string, orderID: string, notes: string = '') {
     return FetchOrders([
         ORM.Where({ id: orderID, sellerID }),
     ])
@@ -118,13 +159,15 @@ function Cancel(sellerID: string, orderID: string, notes: string = '') {
             ORM.Update({ cancelled: new Date(), cancelledby: 'seller', notes }),
         ]);
     })
-    .then(() => Orders.Details(sellerID, orderID));
+    .then(() => Orders.DetailsBySeller(sellerID, orderID));
 }
 
 export default {
     Accept,
     Assign,
-    Cancel,
-    Deliver,
+    CancelByBuyer,
+    CancelBySeller,
+    DeliverByBuyer,
+    DeliverBySeller,
     Draft,
 };

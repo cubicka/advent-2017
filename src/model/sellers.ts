@@ -2,6 +2,7 @@ import * as Bluebird from 'bluebird';
 
 import { Omit } from '../util/type';
 
+import { FetchRelations } from './buyerRelations';
 import pg, { Fetch, FetchFactory, FetchLeftJoin, JoinFactory, ORM, Table } from './index';
 import { AddCity } from './states';
 import { CreateUser, User, UserType } from './users';
@@ -114,28 +115,90 @@ function Details(userID: number) {
     .then(sellers => sellers.map(AddCity));
 }
 
-function Update(sellerID: number, seller: any) {
+function Update(userID: number, seller: any) {
     return FetchSellers([
-        ORM.Where({ sellerID }),
+        ORM.Where({ userID }),
         ORM.Update({
             ...seller,
         }),
     ]);
 }
 
-function UpdateImage(sellerID: number, name: string, image: string) {
+function UpdateImage(userID: number, name: string, image: string) {
     return FetchSellers([
-        ORM.Where({ sellerID }),
+        ORM.Where({ userID }),
         ORM.Update({ [name]: image }),
     ]);
+}
+
+function ListForBuyer(buyerID: string, limit?: number, offset?: number) {
+    return FetchRelations([
+        ORM.Where({ active: true, buyerID }),
+    ], {
+        limit, offset,
+        sortBy: 'id', sortOrder: 'asc',
+    })
+    .then(relations => {
+        const sellerIDs = relations.map(r => r.sellerID);
+        return FetchSellers([
+            ORM.WhereIn('userID', sellerIDs),
+        ], {
+            columns: ['userID', 'name', 'address', 'cityID', 'stateID', 'image', 'phone', 'latitude',
+            'longitude', 'shop'],
+        });
+    });
+}
+
+function DetailsForBuyer(sellerID: string) {
+    return FetchUsersSellers([
+        ORM.Where({ 'users.id': sellerID }),
+    ], [
+        ORM.Where({ userID: sellerID }),
+    ], {
+        columns: ['userID', 'name', 'address', 'cityID', 'stateID', 'image', 'phone', 'latitude', 'longitude', 'shop'],
+    });
+}
+
+function Favorites(buyerID: string, sellerID: string) {
+    return pg('favorites').where({sellerID, buyerID, isFavorites: true})
+    .then(favorites => {
+        const itemIDs = favorites.map((fav: any) => (fav.itemID));
+        return pg('item_prices').where({sellerID, active: true}).whereIn('itemID', itemIDs)
+        .then((prices: any) => {
+            const priceIDs = prices.map((price: any) => (price.itemID));
+            return favorites.filter((fav: any) => {
+                return priceIDs.indexOf(fav.itemID) !== -1;
+            });
+        });
+    });
+}
+
+function SetFavorites(buyerID: string, sellerID: string, items: Array<{ itemID: string, isFavorites: boolean}>) {
+    return Bluebird.reduce(items, (accum, {itemID, isFavorites}) => {
+        return pg('favorites').where({buyerID, sellerID, itemID })
+        .then((favs: any) => {
+            if (favs.length === 0) {
+                return pg('favorites').insert({buyerID, sellerID, itemID, isFavorites}, ['itemID', 'isFavorites']);
+            }
+
+            return pg('favorites').where({buyerID, sellerID, itemID}).update({isFavorites}, ['itemID', 'isFavorites']);
+        })
+        .then((results: any) => {
+            return accum.concat(results);
+        });
+    }, []);
 }
 
 export default {
     CreateSeller,
     Details,
+    DetailsForBuyer,
+    Favorites,
     GetByPhone,
     GetByUsername,
+    ListForBuyer,
     MarkNeedSync,
+    SetFavorites,
     Update,
     UpdateImage,
 };

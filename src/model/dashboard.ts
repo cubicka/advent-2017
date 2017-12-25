@@ -1,15 +1,14 @@
 import * as Bluebird from 'bluebird';
-// import Excel from 'exceljs';
-// import express from 'express';
+import Excel from 'exceljs';
+import express from 'express';
 import * as lodash from 'lodash';
-// import tempfile from 'tempfile';
+import tempfile from 'tempfile';
 
-// import { FetchBuyer } from './buyers';
-import { ORM } from './index';
+import pg, { ORM } from './index';
 import { FetchJoinKatalogWs } from './katalog';
 import { OrderItems } from './orderItems';
-import { CountOrder, DetailedOrder, List } from './orders';
-// import { CountOrder, DetailedOrder, FetchOrders, List, Order } from './orders';
+// import { CountOrder, DetailedOrder, List } from './orders';
+import { CountOrder, DetailedOrder, FetchOrders, List } from './orders';
 
 function Dashboard(userID: number, startDate: Date, endDate: Date) {
     return Bluebird.all([
@@ -147,190 +146,189 @@ function LatestOrder(sellerID: number, startDate: Date, endDate: Date) {
     });
 }
 
-// export function ExportOrders(stream: express.Response, sellerID: number, startDate: Date, endDate: Date) {
-//     const builders = [
-//         ...TimeLimitBuilder(startDate, endDate),
-//     ];
+export function ExportOrders(stream: express.Response, sellerID: number, startDate: Date, endDate: Date) {
+    const builders = [
+        ...TimeLimitBuilder(startDate, endDate),
+    ];
 
-//     if (sellerID !== -1) {
-//         builders.push(ORM.Where({ sellerID }));
-//     }
+    if (sellerID !== -1) {
+        builders.push(ORM.Where({ sellerID }));
+    }
 
-//     return FetchOrders(builders, { sortBy: 'created', sortOrder: 'desc' })
-//     .then(orders => {
-//         const buyerIDs = orders.map(order => (order.buyerID));
-//         const orderIDs = orders.map(order => (order.id));
+    return FetchOrders(builders, { sortBy: 'created', sortOrder: 'desc' })
+    .then(orders => {
+        const buyerIDs = orders.map(order => (order.buyerID));
+        const orderIDs = orders.map(order => (order.id));
 
-//         return Promise.all([
-//             pg('buyer_details').whereIn('userID', buyerIDs).select('userID', 'name', 'shop', 'address', 'phone'),
-//             pg('order_items').whereIn('orderID', orderIDs),
-//             pg('additionals').whereIn('orderID', orderIDs),
-//         ])
-//         .then(([buyers, items, additionals]) => {
-//             return Promise.all([
-//                 buyers,
-//                 orders.map(order => {
-//                     const buyer = buyers.find((user: any) => (user.userID === order.buyerID));
-//                     const orderItems = items.filter((item: any) => (item.orderID === order.id));
-//                     const orderAdds = additionals.filter((item: any) => (item.orderID === order.id));
+        return Promise.all([
+            pg('buyer_details').whereIn('userID', buyerIDs).select('userID', 'name', 'shop', 'address', 'phone'),
+            pg('order_items').whereIn('orderID', orderIDs),
+            pg('additionals').whereIn('orderID', orderIDs),
+        ])
+        .then(([buyers, items, additionals]) => {
+            return Promise.all([
+                buyers,
+                orders.map(order => {
+                    const buyer = buyers.find((user: any) => (user.userID === order.buyerID));
+                    const orderItems = items.filter((item: any) => (item.orderID === order.id));
+                    const orderAdds = additionals.filter((item: any) => (item.orderID === order.id));
 
-//                     const latestVersion = Math.max(
-//                         ...orderItems.map((item: any) => (item.revision)),
-//                         ...orderAdds.map((item: any) => (item.revision)),
-//                     );
+                    const latestVersion = Math.max(
+                        ...orderItems.map((item: any) => (item.revision)),
+                        ...orderAdds.map((item: any) => (item.revision)),
+                    );
 
-//                    const totalPrice = orderItems.filter((item: any) =>
-//                        (parseInt(item.revision, 10) === latestVersion))
-//                     .reduce((total: any, item: any) => {
-//                         return total + item.quantity * item.price;
-//                     }, 0);
+                    const totalPrice = orderItems.filter((item: any) => (parseInt(item.revision, 10) === latestVersion))
+                    .reduce((total: any, item: any) => {
+                        return total + item.quantity * item.price;
+                    }, 0);
 
-//                     return lodash.assign(order, {
-//                         buyer, items: orderItems, totalPrice,
-//                         latestAdds: orderAdds.filter((item: any) => (latestVersion === parseInt(item.revision, 10))),
-//                        latestItems: orderItems.filter((item: any) =>
-//                            (latestVersion === parseInt(item.revision, 10))),
-//                     });
-//                 }),
+                    return lodash.assign(order, {
+                        buyer, items: orderItems, totalPrice,
+                        latestAdds: orderAdds.filter((item: any) => (latestVersion === parseInt(item.revision, 10))),
+                       latestItems: orderItems.filter((item: any) =>
+                           (latestVersion === parseInt(item.revision, 10))),
+                    });
+                }),
 
-//                 pg('katalog_ws').whereIn('id', items.map((item: any) => (item.itemID))),
-//             ]);
-//         });
-//     })
-//     .then(([buyers, orders, katalog]) => {
-//         const fileName = 'report';
-//         stream.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-//         stream.setHeader('Content-Disposition', 'attachment; filename=\'export_' + fileName + '.xlsx\'');
+                pg('katalog_ws').whereIn('id', items.map((item: any) => (item.itemID))),
+            ]);
+        });
+    })
+    .then(([buyers, orders, katalog]) => {
+        const fileName = 'report';
+        stream.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        stream.setHeader('Content-Disposition', 'attachment; filename=\'export_' + fileName + '.xlsx\'');
 
-//         const workbook = new Excel.Workbook();
+        const workbook = new Excel.Workbook();
 
-//         function SimplerTime(datetime: string) {
-//             const d = new Date(datetime);
-//             d.setHours(d.getHours() + 7);
-//             const iso = d.toISOString();
-//             return `${iso.slice(0, 10)} ${iso.slice(11, 16)} (WIB)`;
-//         }
+        function SimplerTime(datetime: string) {
+            const d = new Date(datetime);
+            d.setHours(d.getHours() + 7);
+            const iso = d.toISOString();
+            return `${iso.slice(0, 10)} ${iso.slice(11, 16)} (WIB)`;
+        }
 
-//         function FormatHarga(x: number) {
-//             if (!x) {
-//                 return 0;
-//             }
-//             return x.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-//         }
+        function FormatHarga(x: number) {
+            if (!x) {
+                return 0;
+            }
+            return x.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+        }
 
-//         function Status(order: any) {
-//             if (order.cancelled) return 'Dibatalkan';
-//             if (order.delivered) return 'Telah Diterima';
-//             if (order.pickedup) return 'Dalam Pengantaran';
-//             return 'Sedang Diproses';
-//         }
+        function Status(order: any) {
+            if (order.cancelled) return 'Dibatalkan';
+            if (order.delivered) return 'Telah Diterima';
+            if (order.pickedup) return 'Dalam Pengantaran';
+            return 'Sedang Diproses';
+        }
 
-//         const sheet = workbook.addWorksheet('detail pesanan');
-//         const columns = ['Tanggal Pemesanan', 'Pemesan', 'Alamat', 'No. Telp', 'Status', 'Total Transaksi',
-//             'Tanggal Pengantaran', 'Tanggal Diterima', 'Tanggal Pembatalan'];
-//         sheet.addRow(columns).commit();
+        const sheet = workbook.addWorksheet('detail pesanan');
+        const columns = ['Tanggal Pemesanan', 'Pemesan', 'Alamat', 'No. Telp', 'Status', 'Total Transaksi',
+            'Tanggal Pengantaran', 'Tanggal Diterima', 'Tanggal Pembatalan'];
+        sheet.addRow(columns).commit();
 
-//         const buyerMap = buyers.reduce((accum: any, buyer: any) => {
-//             accum[buyer.userID] = buyer;
-//             accum[buyer.userID].totalTransaksi = 0;
-//             accum[buyer.userID].jumlahTransaksi = 0;
-//             return accum;
-//         }, {});
+        const buyerMap = buyers.reduce((accum: any, buyer: any) => {
+            accum[buyer.userID] = buyer;
+            accum[buyer.userID].totalTransaksi = 0;
+            accum[buyer.userID].jumlahTransaksi = 0;
+            return accum;
+        }, {});
 
-//         let totalTransaksi = 0;
-//         orders.forEach(order => {
-//             const row = [];
-//             row.push(SimplerTime(order.created));
-//             row.push(order.buyer.shop);
-//             row.push(order.buyer.address);
-//             row.push(order.buyer.phone);
-//             row.push(Status(order));
-//             row.push(`Rp ${FormatHarga(order.totalPrice)}`);
-//             row.push(order.pickedup ? SimplerTime(order.pickedup) : '-');
-//             row.push(order.delivered ? SimplerTime(order.delivered) : '-');
-//             row.push(order.cancelled ? SimplerTime(order.cancelled) : '-');
+        let totalTransaksi = 0;
+        orders.forEach(order => {
+            const row = [];
+            row.push(SimplerTime(order.created));
+            row.push(order.buyer.shop);
+            row.push(order.buyer.address);
+            row.push(order.buyer.phone);
+            row.push(Status(order));
+            row.push(`Rp ${FormatHarga(order.totalPrice)}`);
+            row.push(order.pickedup ? SimplerTime(order.pickedup) : '-');
+            row.push(order.delivered ? SimplerTime(order.delivered) : '-');
+            row.push(order.cancelled ? SimplerTime(order.cancelled) : '-');
 
-//             totalTransaksi += order.totalPrice;
-//             buyerMap[order.buyerID].totalTransaksi += order.totalPrice;
-//             buyerMap[order.buyerID].jumlahTransaksi += 1;
-//             sheet.addRow(row).commit();
-//         });
+            totalTransaksi += order.totalPrice;
+            buyerMap[order.buyerID].totalTransaksi += order.totalPrice;
+            buyerMap[order.buyerID].jumlahTransaksi += 1;
+            sheet.addRow(row).commit();
+        });
 
-//         const buyerSheet = workbook.addWorksheet('retailer aktif');
-//         buyerSheet.addRow(['Nama Toko', 'Nama Pemilik', 'No. Telp', 'Alamat', 'Jumlah Transaksi',
-//             'Total Nilai Transaksi']).commit();
-//         const buyersOrdered = Object.keys(buyerMap).map(buyerID => {
-//             const buyer = buyerMap[buyerID];
-//             return buyer;
-//         }).sort((a, b) => ((a.totalTransaksi - b.totalTransaksi) * -1));
-//         buyersOrdered.forEach((buyer: any) => {
-//             const row = [];
-//             row.push(buyer.shop);
-//             row.push(buyer.name);
-//             row.push(buyer.phone);
-//             row.push(buyer.address);
-//             row.push(buyer.jumlahTransaksi);
-//             row.push(buyer.totalTransaksi);
-//             buyerSheet.addRow(row).commit();
-//         });
+        const buyerSheet = workbook.addWorksheet('retailer aktif');
+        buyerSheet.addRow(['Nama Toko', 'Nama Pemilik', 'No. Telp', 'Alamat', 'Jumlah Transaksi',
+            'Total Nilai Transaksi']).commit();
+        const buyersOrdered = Object.keys(buyerMap).map(buyerID => {
+            const buyer = buyerMap[buyerID];
+            return buyer;
+        }).sort((a, b) => ((a.totalTransaksi - b.totalTransaksi) * -1));
+        buyersOrdered.forEach((buyer: any) => {
+            const row = [];
+            row.push(buyer.shop);
+            row.push(buyer.name);
+            row.push(buyer.phone);
+            row.push(buyer.address);
+            row.push(buyer.jumlahTransaksi);
+            row.push(buyer.totalTransaksi);
+            buyerSheet.addRow(row).commit();
+        });
 
-//         const katalogMap = katalog.reduce((accum: any, item: any) => {
-//             accum[item.id] = item;
-//             return accum;
-//         }, {});
+        const katalogMap = katalog.reduce((accum: any, item: any) => {
+            accum[item.id] = item;
+            return accum;
+        }, {});
 
-//         const itemSheet = workbook.addWorksheet('detail barang');
-//         itemSheet.addRow(['Tangal Pemesanan', 'Pemesan', 'No Telp', 'Nama Barang', 'Unit', 'Jumlah',
-//             'Harga Per Barang', 'Harga Total']).commit();
-//         orders.forEach(order => {
-//             const row: any[] = [];
-//             row.push(SimplerTime(order.created));
-//             row.push(order.buyer.shop);
-//             row.push(order.buyer.phone);
-//             order.latestItems.forEach((item: any) => {
-//                 const katalogItem = katalogMap[item.itemID] || {};
-//                 const itemRow = [...row];
+        const itemSheet = workbook.addWorksheet('detail barang');
+        itemSheet.addRow(['Tangal Pemesanan', 'Pemesan', 'No Telp', 'Nama Barang', 'Unit', 'Jumlah',
+            'Harga Per Barang', 'Harga Total']).commit();
+        orders.forEach(order => {
+            const row: any[] = [];
+            row.push(SimplerTime(order.created));
+            row.push(order.buyer.shop);
+            row.push(order.buyer.phone);
+            order.latestItems.forEach((item: any) => {
+                const katalogItem = katalogMap[item.itemID] || {};
+                const itemRow = [...row];
 
-//                 itemRow.push(katalogItem.name);
-//                 itemRow.push(item.unit);
-//                 itemRow.push(item.quantity);
-//                 itemRow.push(item.price);
-//                 itemRow.push(item.quantity * item.price);
-//                 itemSheet.addRow(itemRow).commit();
-//             });
+                itemRow.push(katalogItem.name);
+                itemRow.push(item.unit);
+                itemRow.push(item.quantity);
+                itemRow.push(item.price);
+                itemRow.push(item.quantity * item.price);
+                itemSheet.addRow(itemRow).commit();
+            });
 
-//             order.latestAdds.forEach((item: any) => {
-//                 const itemRow = [...row];
+            order.latestAdds.forEach((item: any) => {
+                const itemRow = [...row];
 
-//                 itemRow.push(item.name);
-//                 itemRow.push(item.unit);
-//                 itemRow.push(item.quantity);
-//                 itemRow.push(item.price);
-//                 itemRow.push(item.quantity * item.price);
-//                 itemSheet.addRow(itemRow).commit();
-//             });
-//         });
+                itemRow.push(item.name);
+                itemRow.push(item.unit);
+                itemRow.push(item.quantity);
+                itemRow.push(item.price);
+                itemRow.push(item.quantity * item.price);
+                itemSheet.addRow(itemRow).commit();
+            });
+        });
 
-//         const rekapSheet = workbook.addWorksheet('rekap');
-//         rekapSheet.addRow(['Jumlah Pesanan', orders.length + ' pesanan']).commit();
-//         rekapSheet.addRow(['Total Transaksi', `Rp ${FormatHarga(totalTransaksi)}`]).commit();
-//         rekapSheet.addRow(['Jumlah Sedang Diproses',
-//             orders.filter(order => (Status(order) === 'Sedang Diproses')).length + ' pesanan']).commit();
-//         rekapSheet.addRow(['Jumlah Dalam Pengantaran',
-//             orders.filter(order => (Status(order) === 'Dalam Pengantaran')).length + ' pesanan']).commit();
-//         rekapSheet.addRow(['Jumlah Dalam Pengantaran',
-//             orders.filter(order => (Status(order) === 'Dalam Pengantaran')).length + ' pesanan']).commit();
-//         rekapSheet.addRow(['Jumlah Dibatalkan',
-//             orders.filter(order => (Status(order) === 'Dibatalkan')).length]).commit();
+        const rekapSheet = workbook.addWorksheet('rekap');
+        rekapSheet.addRow(['Jumlah Pesanan', orders.length + ' pesanan']).commit();
+        rekapSheet.addRow(['Total Transaksi', `Rp ${FormatHarga(totalTransaksi)}`]).commit();
+        rekapSheet.addRow(['Jumlah Sedang Diproses',
+            orders.filter(order => (Status(order) === 'Sedang Diproses')).length + ' pesanan']).commit();
+        rekapSheet.addRow(['Jumlah Dalam Pengantaran',
+            orders.filter(order => (Status(order) === 'Dalam Pengantaran')).length + ' pesanan']).commit();
+        rekapSheet.addRow(['Jumlah Dalam Pengantaran',
+            orders.filter(order => (Status(order) === 'Dalam Pengantaran')).length + ' pesanan']).commit();
+        rekapSheet.addRow(['Jumlah Dibatalkan',
+            orders.filter(order => (Status(order) === 'Dibatalkan')).length]).commit();
 
-//         const tempFilePath = tempfile((new Date()).getTime().toString() + '.xlsx');
-//         workbook.xlsx.writeFile(tempFilePath).then(() => {
-//             stream.sendFile(tempFilePath, (err: any) => {
-//                 throw new Error('Gagal mengirim report.');
-//             });
-//         });
-//     });
-// }
+        const tempFilePath = tempfile((new Date()).getTime().toString() + '.xlsx');
+        workbook.xlsx.writeFile(tempFilePath).then(() => {
+            stream.sendFile(tempFilePath, (err: any) => {
+                throw new Error('Gagal mengirim report.');
+            });
+        });
+    });
+}
 
 // function LatestVersions(orders: Order[]) {
 //     const orderIDs = orders.map(order => (order.id));
@@ -408,7 +406,7 @@ function LatestOrder(sellerID: number, startDate: Date, endDate: Date) {
 
 export default {
     Dashboard,
-    // ExportOrders,
+    ExportOrders,
 };
 
 // export function BuyerReport(sellerID, buyerID, startDate, endDate) {

@@ -5,8 +5,9 @@ import { Normalize } from '../util/phone';
 import { Omit } from '../util/type';
 
 import { Relations } from './buyerRelations';
-import pg, { Fetch, FetchAndCount, FetchFactory, JoinFactory, ORM, Table } from './index';
-import { CreateUser, User } from './users';
+import pg, { Fetch, FetchAndCount, FetchFactory, FetchJoin, JoinFactory, ORM, Table } from './index';
+import { AddCity } from './states';
+import { CreateUser, FetchUsers, User } from './users';
 
 export interface BuyerInsertParams {
     address: string;
@@ -31,6 +32,14 @@ export interface Buyer extends BuyerInsertParams {
 }
 
 export const FetchBuyer = FetchFactory<Buyer>(pg(Table.buyers));
+export const FetchBuyerUsers = FetchJoin<Buyer & User>(
+    pg(Table.buyers),
+    pg(Table.users),
+    'buyer_details.userID',
+    'users.id',
+    'users',
+);
+
 export const JoinBuyerRelations = JoinFactory(
     pg(Table.buyers), pg(Table.buyersRelations), 'buyer_details.userID', 'buyer_relations.buyerID', 'buyer_relations');
 
@@ -123,8 +132,82 @@ function ListByPhone(phone: string) {
     });
 }
 
+function ListByID(userID: string) {
+    return FetchBuyerUsers([
+        ORM.Where({ userID }),
+    ], [], {
+        columns: ['userID', 'name', 'shop', 'address', 'stateID', 'cityID', 'phone', 'ktp', 'selfie',
+            'signature', 'profilePicture', 'latitude', 'longitude', 'zipcode', 'username'],
+    })
+    .then(results => {
+        return results.map(AddCity);
+    });
+}
+
+function getRandomIntInclusive(min: number, max: number) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function CreateVerification(userID: string) {
+    const token = [1, 2, 3, 4].map(x => (getRandomIntInclusive(0, 9)));
+    const verification = token.join('');
+
+    return FetchBuyer([
+        ORM.Where({userID}),
+        ORM.Update({verification}),
+    ])
+    .then(() => (verification));
+}
+
+function UpdateImage(userID: number, name: string, image: string) {
+    return FetchBuyer([
+        ORM.Where({ userID }),
+        ORM.Update({ [name]: image }),
+    ]);
+}
+
+function Verify(userID: string, token: string) {
+    return FetchBuyer([
+        ORM.Where({userID}),
+    ])
+    .then(buyers => {
+        const buyer = buyers[0];
+        if (buyer === undefined || buyer.verification !== token) return false;
+
+        return FetchUsers([
+            ORM.Where({id: userID}),
+            ORM.Update({verified: true}),
+        ])
+        .then(() => (true));
+    });
+}
+
+function ChangeLatLong(userID: string, {latitude, longitude}: { latitude: string, longitude: string}) {
+    return FetchBuyer([
+        ORM.Where({ userID }),
+        ORM.Update({ latitude, longitude }, ['id', 'latitude', 'longitude']),
+    ]);
+}
+
+function Update(userID: number, buyer: any) {
+    return FetchBuyer([
+        ORM.Where({ userID }),
+        ORM.Update({
+            ...buyer,
+        }),
+    ]);
+}
+
 export default {
+    ChangeLatLong,
     CreateBuyer,
+    CreateVerification,
+    ListByID,
     ListByPhone,
     ListForSeller,
+    Update,
+    UpdateImage,
+    Verify,
 };

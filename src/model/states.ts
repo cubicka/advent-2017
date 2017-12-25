@@ -22,9 +22,9 @@ const banks = lodash.reduce(bankJSON.banks, (accum, b) => {
 }, {} as any);
 
 interface PublicData {
-    bankID: string;
-    cityID: string;
-    stateID: string;
+    bankID?: string;
+    cityID?: string;
+    stateID?: string;
 }
 
 export function AddCity<T extends PublicData>(user: T) {

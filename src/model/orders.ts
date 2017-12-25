@@ -3,7 +3,8 @@ import * as Bluebird from 'bluebird';
 import { Buyer } from './buyers';
 import pg, { BuilderFn, CountFactory, Extender, FetchAndCount, FetchFactory, Join, ORM, Selector,
     Table } from './index';
-import { AddItems, OrderItemsList } from './orderItems';
+import { AddItems, CreateOrderAdditionals, CreateOrderItems,
+    OrderItemsList } from './orderItems';
 import { Seller } from './sellers';
 
 export interface Order {
@@ -157,7 +158,23 @@ function ListBySeller(sellerID: string, params: OrderParams) {
     return List([ ORM.Where({ sellerID }) ], [ORM.Where({ userID: sellerID })], [], params);
 }
 
-function Details(sellerID: string, orderID: string) {
+function DetailsByBuyer(buyerID: string, orderID: string) {
+    return List(
+        [ ORM.Where({ buyerID, 'details.id': orderID }) ],
+        [],
+        [ORM.Where({ userID: buyerID })],
+        {
+            limit: 1,
+            offset: 0,
+        },
+    )
+    .then(orders => {
+        if (orders.orders.length === 0) throw new Error('Order tidak ditemukan.');
+        return orders.orders[0];
+    });
+}
+
+function DetailsBySeller(sellerID: string, orderID: string) {
     return List([ ORM.Where({ sellerID, 'details.id': orderID }) ], [ORM.Where({ userID: sellerID })], [], {
         limit: 1,
         offset: 0,
@@ -172,8 +189,52 @@ function ListUnread(userID: string) {
     return CountOrder([ORM.Where({ read: false, sellerID: userID })]);
 }
 
+interface OrderInsertParams {
+    address: string;
+    sellerID: number;
+    buyerID: number;
+    isCOD: boolean;
+    items: Array<{
+        priceID: string;
+        quantity: string;
+    }>;
+    additionals: Array<{
+        name: string;
+        price: string;
+        quantity: string;
+        unit: string;
+    }>;
+}
+
+function Create(order: OrderInsertParams) {
+    const {sellerID, buyerID, address, items, isCOD, additionals} = order;
+
+    const created = new Date();
+    return FetchOrders([
+        ORM.Insert({
+            sellerID,
+            buyerID,
+            address,
+            created,
+            isCOD,
+            isPaid: false,
+        }, ['id']),
+    ])
+    .then(ids => {
+        const {id} = ids[0];
+        return CreateOrderItems(id, items, created)
+        .then(() => {
+            if (additionals) return CreateOrderAdditionals(id, additionals, created);
+            return [];
+        })
+        .then(() => (id));
+    });
+}
+
 export default {
-    Details,
+    Create,
+    DetailsByBuyer,
+    DetailsBySeller,
     ListByBuyer,
     ListBySeller,
     ListUnread,
@@ -224,21 +285,6 @@ export default {
 //             return pg('favorites').insert({sellerID, buyerID, itemID})
 //         })
 //     }, {})
-// }
-
-// function CreateOrder(order) {
-//     const {sellerID, buyerID, address, items, isCOD, additionals} = order
-//     const created = new Date()
-//     return pg('orders').insert({sellerID, buyerID, address, created, isCOD, isPaid: false}, ['id'])
-//     .then((ids) => {
-//         const {id} = ids[0]
-//         return CreateOrderItems(id, items, created)
-//         .then(() => {
-//             if (additionals) return AddAdditionals(id, additionals, created)
-//             return
-//         })
-//         .then(() => (id))
-//     })
 // }
 
 // function GetDrivers(orderID) {

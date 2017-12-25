@@ -92,7 +92,7 @@ export function AddItems(orders: DetailedOrder[]) {
 }
 
 export function CreateOrderItems(
-    orderID: string,
+    orderID: number,
     items: Array<{priceID: string, quantity: string}>,
     timestamp: Date,
 ) {
@@ -127,11 +127,11 @@ export function CreateOrderItems(
 }
 
 export function CreateOrderAdditionals(
-    orderID: string,
+    orderID: number,
     additionals: Array<{ name: string, quantity: string, unit: string, price: string}>,
     timestamp: Date,
 ) {
-    if (additionals.length === 0) return [];
+    if (additionals.length === 0) return Bluebird.try(() => ([]));
 
     const adds = additionals.filter(add => {
         const {name, quantity, unit, price} = add;

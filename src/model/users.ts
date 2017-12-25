@@ -24,7 +24,7 @@ export interface User extends UserInsertParams {
     updated_at?: string;
 }
 
-const FetchUsers = FetchFactory<User>(pg(Table.users));
+export const FetchUsers = FetchFactory<User>(pg(Table.users));
 
 export function CreateUser(user: UserInsertParams): Bluebird<User> {
     return FetchUsers([
@@ -110,11 +110,24 @@ function SetToken(id: number, token: string, notificationID?: string): Bluebird<
     });
 }
 
+function SignOut(id: string) {
+    const builders = [
+        ORM.Where({ id }),
+        ORM.Update({
+            notificationID: null,
+            token: null,
+        }),
+    ];
+
+    return FetchUsers(builders);
+}
+
 export default {
     GetByToken,
     GetByUsername,
     SetSaltHash,
     SetToken,
+    SignOut,
 };
 
 // function FilterIDs(ids: string[]): BuilderFn {
@@ -136,18 +149,6 @@ export default {
 // function InserUser(user: User): BuilderFn {
 //     const simplifiedUser = ProjectObj(user, ['username', 'salt', 'hash', 'name', 'company', 'phone'])
 //     return ORM.Insert(simplifiedUser, ['id', 'created_at'])
-// }
-
-// function SignOut(id: string): Bluebird<any> {
-//     const builders = [
-//         FilterID(id),
-//         ORM.Update({
-//             notificationID: null,
-//             token: null,
-//         })
-//     ]
-
-//     return ActualizeUser(builders)
 // }
 
 // function Create(user: User) {
@@ -222,33 +223,6 @@ export default {
 //     .then(buyers => buyers.map(AddCity))
 // }
 
-// function CreateBuyerVerification(userID: string) {
-//     const token = [1,2,3,4].map((x) => (getRandomIntInclusive(0, 9)))
-//     const verification = token.join('')
-
-//     return ActualizeBuyer([
-//         ORM.FilterBy({userID}),
-//         ORM.Update({verification}),
-//     ])
-//     .then(() => (verification))
-// }
-
-// function VerifyBuyer(userID: string, token: string): Bluebird<boolean> {
-//     return ActualizeBuyer([
-//         ORM.FilterBy({userID}),
-//     ])
-//     .then(buyers => {
-//         const buyer = buyers[0]
-//         if (buyer === undefined || buyer.verification !== token) return false
-
-//         return ActualizeUser([
-//             ORM.FilterBy({id: userID}),
-//             ORM.Update({verified: true}),
-//         ])
-//         .then(() => (true))
-//     })
-// }
-
 // function UpdateImage(userID, name, image) {
 //     return pg('buyer_details')
 //     .where({userID})
@@ -259,12 +233,6 @@ export default {
 //     return pg('seller_details')
 //     .where({userID})
 //     .update({[name]: image})
-// }
-
-// function ChangeLatLong(userID, {latitude, longitude}) {
-//     return pg('buyer_details')
-//     .where({userID})
-//     .update({latitude, longitude}, ['id', 'latitude', 'longitude'])
 // }
 
 // function UpdateUser(id, user) {

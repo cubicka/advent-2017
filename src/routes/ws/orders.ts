@@ -26,7 +26,7 @@ function Unread(req: express.Request, res: express.Response, next: express.NextF
 
 function Detail(req: express.Request, res: express.Response, next: express.NextFunction) {
     const user = req.kulakan.user;
-    return Orders.Details(user.id, req.params.id)
+    return Orders.DetailsBySeller(user.id, req.params.id)
     .then(order => {
         res.send({ order });
     });
@@ -103,7 +103,7 @@ function Draft(req: express.Request, res: express.Response, next: express.NextFu
 function Cancel(req: express.Request, res: express.Response, next: express.NextFunction) {
     const {user} = req.kulakan;
     const {notes} = req.body;
-    return ProcessOrders.Cancel(user.id, req.params.id, notes)
+    return ProcessOrders.CancelBySeller(user.id, req.params.id, notes)
     .then(order => {
         req.kulakan.order = order;
         req.kulakan.buyerID = order.details.buyerID;
@@ -143,7 +143,7 @@ function ReadyForPickup(req: express.Request, res: express.Response, next: expre
 
 function Deliver(req: express.Request, res: express.Response, next: express.NextFunction) {
     const {user} = req.kulakan;
-    return ProcessOrders.Deliver(user.id, req.params.id)
+    return ProcessOrders.DeliverBySeller(user.id, req.params.id)
     .then(order => {
         res.send({order});
     });

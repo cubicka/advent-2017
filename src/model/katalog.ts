@@ -147,7 +147,7 @@ export function KatalogPriceListed(
         // ...(priceFilter === 'price' ? [ ORM.WhereNotNull('item_prices.sellerID') ] : []),
         // ...(priceFilter === 'noPrice' ? [ ORM.WhereNull('item_prices.sellerID') ] : []),
         ORM.GroupBy([
-            'katalog_ws.id', 'principalID', 'sku', 'katalog.name', 'katalog_ws.name',
+            'katalog_ws.id', 'katalog.id', 'principalID', 'sku', 'katalog.name', 'katalog_ws.name',
             'katalog.category', 'katalog_ws.category', 'katalog.image', 'katalog_ws.image',
             'katalog.description', 'katalog_ws.description', 'katalog.priority',
         ]),
@@ -168,7 +168,7 @@ export function KatalogPriceListed(
                     'katalog_ws.description as wsDescription', 'katalog.description as katalogDescription',
                     'katalog.image as katalogImage', 'katalog_ws.image as wsImage',
                     'katalog.name as katalogName', 'katalog_ws.name as wsName',
-                    ],
+                ],
                 limit, offset,
             },
         ),
@@ -313,4 +313,29 @@ export function WSDelete(sellerID: number, itemID: number) {
         ORM.Where({ id: itemID, sellerID }),
         ORM.Update({ sellerID: -1 * sellerID }),
     ]);
+}
+
+export function SellerCategory(sellerID: string) {
+    return FetchJoinKatalogWs([
+        ORM.Where({ sellerID }),
+    ], [], {
+        columns: ['katalog_ws.category as category', pg.raw('coalesce(priority,0) as priority')],
+        sortOrder: 'desc',
+        sortBy: 'priority',
+    })
+    // return pg('katalog')
+    //     .leftJoin('item_prices', function() {
+    //         this.on("item_prices.itemID", "=", "katalog.id")
+    //         .andOn('item_prices.sellerID', '=', parseInt(sellerID,10))
+    //     })
+    //     .whereNotNull('sellerID')
+    //     .where('item_prices.active', '=', true)
+    //     .groupBy('katalog.id', 'item_prices.id')
+    //     .having(pg.raw('count(*)'), '>', 0)
+    //     .orderBy('priority', 'desc')
+    //     .distinct('category')
+    //     .select('priority', 'item_prices.active')
+    .then(result => {
+        return lodash.uniq(result.map(x => (x.category)));
+    });
 }

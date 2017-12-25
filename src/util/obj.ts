@@ -76,6 +76,10 @@ export function CleanQuery(s: string) {
         return trimmed.substring(1, trimmed.length - 1);
     }
 
+    if (trimmed[0] === '[' && trimmed[trimmed.length - 1] === ']') {
+        return trimmed.substring(1, trimmed.length - 1);
+    }
+
     return trimmed;
 }
 

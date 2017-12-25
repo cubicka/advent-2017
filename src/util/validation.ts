@@ -104,6 +104,6 @@ export function Middleware(specs: any) {
 //     return x === null
 // }
 
-// export function IsBool(x) {
-//     return x === true || x === false
-// }
+export function IsBool(x: boolean) {
+    return x === true || x === false;
+}
