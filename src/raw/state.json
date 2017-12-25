@@ -1,0 +1,211 @@
+{
+"data": {
+"count": 34,
+"rows": [
+{
+"StateID": 4,
+"Name": "Aceh",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 22,
+"Name": "Bali",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 10,
+"Name": "Bangka Belitung",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 5,
+"Name": "Banten",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 13,
+"Name": "Bengkulu",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 15,
+"Name": "DI Yogyakarta",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 1,
+"Name": "DKI Jakarta",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 30,
+"Name": "Gorontalo",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 12,
+"Name": "Jambi",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 2,
+"Name": "Jawa Barat",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 14,
+"Name": "Jawa Tengah",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 16,
+"Name": "Jawa Timur",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 21,
+"Name": "Kalimantan Barat",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 17,
+"Name": "Kalimantan Selatan",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 18,
+"Name": "Kalimantan Tengah",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 19,
+"Name": "Kalimantan Timur",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 20,
+"Name": "Kalimantan Utara",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 8,
+"Name": "Kepulauan Riau",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 11,
+"Name": "Lampung",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 31,
+"Name": "Maluku",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 32,
+"Name": "Maluku Utara",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 23,
+"Name": "Nusa Tenggara Barat",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 24,
+"Name": "Nusa Tenggara Timur",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 33,
+"Name": "Papua",
+"CreatedDate": "2016-05-03T06:14:31.000Z",
+"ModifiedDate": "2016-05-03T06:14:31.000Z"
+},
+{
+"StateID": 34,
+"Name": "Papua Barat",
+"CreatedDate": "2016-05-03T06:14:31.000Z",
+"ModifiedDate": "2016-05-03T06:14:31.000Z"
+},
+{
+"StateID": 7,
+"Name": "Riau",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 26,
+"Name": "Sulawesi Barat",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 25,
+"Name": "Sulawesi Selatan",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 28,
+"Name": "Sulawesi Tengah",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 27,
+"Name": "Sulawesi Tenggara",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 29,
+"Name": "Sulawesi Utara",
+"CreatedDate": "2016-05-03T06:14:30.000Z",
+"ModifiedDate": "2016-05-03T06:14:30.000Z"
+},
+{
+"StateID": 6,
+"Name": "Sumatera Barat",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 9,
+"Name": "Sumatera Selatan",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+},
+{
+"StateID": 3,
+"Name": "Sumatera Utara",
+"CreatedDate": "2016-05-03T06:14:29.000Z",
+"ModifiedDate": "2016-05-03T06:14:29.000Z"
+}
+]
+}
+}

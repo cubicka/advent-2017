@@ -2,7 +2,8 @@ import * as Bluebird from 'bluebird';
 
 import { Omit } from '../util/type';
 
-import pg, { Fetch, FetchFactory, JoinFactory, ORM, Table } from './index';
+import pg, { Fetch, FetchFactory, FetchLeftJoin, JoinFactory, ORM, Table } from './index';
+import { AddCity } from './states';
 import { CreateUser, User, UserType } from './users';
 
 export interface Seller {
@@ -26,8 +27,10 @@ export interface Seller {
 }
 
 const FetchSellers = FetchFactory<Seller>(pg(Table.sellers));
+const FetchUsersSellers = FetchLeftJoin<Seller>(
+    pg(Table.users), pg(Table.sellers), 'seller_details.userID', 'users.id', 'seller_details');
 const JoinUsersSellers = JoinFactory(
-    pg(Table.users), pg(Table.sellers), 'seller_details.userID', 'users.id', 'sellers');
+    pg(Table.users), pg(Table.sellers), 'seller_details.userID', 'users.id', 'seller_details');
 
 function CreateSeller(seller: Omit<Seller, 'userID'>, userData: Omit<User, 'id'>): Bluebird<Seller> {
     return CreateUser(userData)
@@ -85,8 +88,35 @@ function MarkNeedSync(userID: string) {
     ]);
 }
 
+function Details(userID: number) {
+    return FetchUsersSellers([
+        ORM.Where({ userID }),
+        ORM.Select(
+            'address',
+            'bankAccountName',
+            'bankAccountNumber',
+            'bankBranch',
+            'bankID',
+            'birth',
+            'cityID',
+            'image',
+            'ktp',
+            'latitude',
+            'longitude',
+            'name',
+            'phone',
+            'shop',
+            'stateID',
+            'userID',
+            'username',
+        ),
+    ])
+    .then(sellers => sellers.map(AddCity));
+}
+
 export default {
     CreateSeller,
+    Details,
     GetByPhone,
     GetByUsername,
     MarkNeedSync,

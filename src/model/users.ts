@@ -222,35 +222,6 @@ export default {
 //     .then(buyers => buyers.map(AddCity))
 // }
 
-// function Seller(userID: string) {
-//     const builders = [
-//         ORM.Join('users', 'users.id', 'seller_details.userID'),
-//         ORM.FilterBy({userID}),
-//         ORM.Select(
-//             'address',
-//             'bankAccountName',
-//             'bankAccountNumber',
-//             'bankBranch',
-//             'bankID',
-//             'birth',
-//             'cityID',
-//             'image',
-//             'ktp',
-//             'latitude',
-//             'longitude',
-//             'name',
-//             'phone',
-//             'shop',
-//             'stateID',
-//             'userID',
-//             'username',
-//         ),
-//     ]
-
-//     return ActualizeSeller(builders)
-//     .then(sellers => sellers.map(AddCity))
-// }
-
 // function CreateBuyerVerification(userID: string) {
 //     const token = [1,2,3,4].map((x) => (getRandomIntInclusive(0, 9)))
 //     const verification = token.join('')

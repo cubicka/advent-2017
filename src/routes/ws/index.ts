@@ -1,5 +1,5 @@
 import { Middleware } from '../middleware/auth';
 
 export default {
-    use: [Middleware, '/orders', '/retail', '/sku'],
+    use: [Middleware('seller'), '/account', '/orders', '/retail', '/sku'],
 };
