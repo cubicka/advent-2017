@@ -1,5 +1,5 @@
-import AWS from 'aws-sdk';
-import bluebird from 'bluebird';
+import * as AWS from 'aws-sdk';
+import * as bluebird from 'bluebird';
 
 import * as config from '../config.json';
 

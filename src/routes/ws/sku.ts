@@ -16,7 +16,7 @@ function KatalogListed(req: express.Request, res: express.Response, next: expres
     const queryParams = {
         category: CleanQuery(category),
         name: CleanQuery(filter),
-        noImage: CleanQuery(noImage) !== '',
+        noImage: CleanQuery(noImage) !== undefined && CleanQuery(noImage) !== '',
         price: CleanQuery(price),
         limit: params.limit,
         offset: params.offset,

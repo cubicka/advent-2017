@@ -87,6 +87,12 @@ export function KatalogPriceListed(
             });
         }),
         ORM.Where(function(this: any) {
+            if (!noImage) return;
+
+            this.andWhere(pg.raw('katalog.image is null'))
+            .andWhere(pg.raw('katalog_ws.image is null'));
+        }),
+        ORM.Where(function(this: any) {
             if (!category) return;
 
             this.orWhere('katalog.category', 'ilike', category)
@@ -114,7 +120,7 @@ export function KatalogPriceListed(
                     'katalog_ws.id as itemID', 'principalID', 'sku', 'katalog.name as katalogName',
                     'katalog_ws.name as wsName', 'katalog.category as katalogCategory',
                     'katalog_ws.category as wsCategory', 'katalog.image as katalogImage',
-                    'katalog_ws.image as wsImage', 'priority',
+                    'katalog_ws.image as wsImage', pg.raw('coalesce(priority, 0) as priority'),
                     'katalog_ws.description as wsDescription', 'katalog.description as katalogDescription',
                 ],
                 limit, offset,

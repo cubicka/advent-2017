@@ -1,9 +1,9 @@
-import Bluebird from 'bluebird';
+import * as Bluebird from 'bluebird';
 import express from 'express';
-import fs from 'fs';
+import * as fs from 'fs';
 import * as gmBase from 'gm';
 import mime from 'mime';
-import multer from 'multer';
+import * as multer from 'multer';
 import tempy from 'tempy';
 
 import Upload from '../../service/s3';
