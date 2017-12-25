@@ -1,14 +1,15 @@
-// import pg from './index'
-// import Excel from 'exceljs'
-// import tempfile from 'tempfile'
-
 import * as Bluebird from 'bluebird';
+// import Excel from 'exceljs';
+// import express from 'express';
 import * as lodash from 'lodash';
+// import tempfile from 'tempfile';
 
+// import { FetchBuyer } from './buyers';
 import { ORM } from './index';
 import { FetchJoinKatalogWs } from './katalog';
 import { OrderItems } from './orderItems';
 import { CountOrder, DetailedOrder, List } from './orders';
+// import { CountOrder, DetailedOrder, FetchOrders, List, Order } from './orders';
 
 function Dashboard(userID: number, startDate: Date, endDate: Date) {
     return Bluebird.all([
@@ -81,15 +82,10 @@ function OrderCancelled(sellerID: number, startDate: Date, endDate: Date) {
     return CountOrder(builders);
 }
 
-export default {
-    Dashboard,
-};
-
 function LatestOrder(sellerID: number, startDate: Date, endDate: Date) {
     const builders = [
         ...TimeLimitBuilder(startDate, endDate),
         ORM.WhereNull('cancelled'),
-        ORM.OrderBy('created', 'desc'),
     ];
 
     if (sellerID !== -1) builders.push(ORM.Where({ sellerID }));
@@ -141,100 +137,29 @@ function LatestOrder(sellerID: number, startDate: Date, endDate: Date) {
     })
     .then(items => {
         return {
-            orders: latestOrders,
+            orders: latestOrders.sort((a, b) => {
+                if (a.details.created < b.details.created) return 1;
+                if (a.details.created > b.details.created) return -1;
+                return 0;
+            }),
             items, revenue: totalRevenue,
         };
     });
 }
 
-// function LatestItems(userID, startDate, endDate) {
-//     const clause = userID !== -1 ? pg('orders').where({sellerID: userID}).whereNull('cancelled') : pg
-// ('orders').whereNull('cancelled')
-//     return AddTimeLimit(clause, startDate, endDate).select('id')
-//     .then((orders) => {
-//         const orderIDs = orders.map((order) => (order.id))
-//         return pg('order_items').whereIn('orderID', orderIDs)
-//         .then((items) => {
-//             const latestOfIDs = orderIDs.reduce((accum, orderID) => {
-//                 const orderItems = items.filter((item) => (item.orderID === orderID))
-//                 const latestVersion = Math.max(...orderItems.map((item) => (item.revision)))
+// export function ExportOrders(stream: express.Response, sellerID: number, startDate: Date, endDate: Date) {
+//     const builders = [
+//         ...TimeLimitBuilder(startDate, endDate),
+//     ];
 
-//                 accum[orderID] = latestVersion
-//                 return accum
-//             }, {})
+//     if (sellerID !== -1) {
+//         builders.push(ORM.Where({ sellerID }));
+//     }
 
-//             return items.filter((item) => (parseInt(item.revision, 10) === latestOfIDs[item.orderID]))
-//         })
-//     })
-//     .then((items) => {
-//         const itemByIDs = lodash.groupBy(items, (item) => (item.itemID.toString() + item.unit))
-//         const itemPrices = lodash.map(itemByIDs, (details, itemID) => {
-//             const totalPrice = lodash.reduce(details, (total, detail) => {
-//                 return {
-//                     price: total.price + detail.quantity * detail.price,
-//                     quantity: total.quantity + detail.quantity,
-//                 }
-//             }, {price: 0, quantity: 0})
-
-//             return {
-//                 totalPrice: totalPrice.price, totalQuantity: totalPrice.quantity, unit: details[0].unit,
-// itemID: details[0].itemID
-//             }
-//         })
-
-//         const itemIDs = lodash.chain(items).map((item) => (item.itemID)).uniq().value()
-//         return pg('katalog').whereIn('id', itemIDs)
-//         .then((katalog) => {
-//             return lodash.sortBy(itemPrices, (item) => (item.totalPrice * -1)).slice(0, 5).map((item) => {
-//                 const katalogItem = katalog.find((ki) => (ki.id === item.itemID))
-//                 return lodash.assign(item, {name: katalogItem.name, image: katalogItem.image})
-//             })
-//         })
-//     })
-// }
-
-// function TotalRevenue(userID, startDate, endDate) {
-//     const clause = userID !== -1 ? pg('orders').where({sellerID: userID}).whereNull('cancelled').orderBy
-// ('created', 'desc') : pg('orders').whereNull('cancelled').orderBy('created', 'desc')
-//     return AddTimeLimit(clause, startDate, endDate)
-//     .then((orders) => {
-//         const buyerIDs = orders.map((order) => (order.buyerID))
-//         const orderIDs = orders.map((order) => (order.id))
-
-//         return Promise.all([
-//             pg('buyer_details').whereIn('userID', buyerIDs).select('userID', 'name', 'shop'),
-//             pg('order_items').whereIn('orderID', orderIDs),
-//         ])
-//         .then(([buyers, items]) => {
-//             return orders.map((order) => {
-//                 const buyer = buyers.find((user) => (user.userID === order.buyerID))
-//                 const orderItems = items.filter((item) => (item.orderID === order.id))
-//                 const latestVersion = Math.max(...orderItems.map((item) => (item.revision)))
-//                 const totalPrice = orderItems.filter((item) => (parseInt(item.revision,10) ===
-// latestVersion)).reduce((total, item) => {
-//                     return total + item.quantity * item.price
-//                 }, 0)
-
-//                 return lodash.assign(order, {buyer: buyer, items: orderItems, totalPrice})
-//             })
-//         })
-//         .then((orders) => {
-//             return {
-//                 revenue: orders.reduce((total, order) => (total + order.totalPrice), 0),
-//                 allOrders: orders,
-//             }
-//         })
-//     })
-// }
-
-// export function ExportOrders(stream, userID, startDate, endDate) {
-//     const clause = userID === -1 ? pg('orders').orderBy('created', 'desc') : pg('orders').where(
-    // {sellerID: userID}).orderBy('created', 'desc')
-
-//     return AddTimeLimit(clause, startDate, endDate)
-//     .then((orders) => {
-//         const buyerIDs = orders.map((order) => (order.buyerID))
-//         const orderIDs = orders.map((order) => (order.id))
+//     return FetchOrders(builders, { sortBy: 'created', sortOrder: 'desc' })
+//     .then(orders => {
+//         const buyerIDs = orders.map(order => (order.buyerID));
+//         const orderIDs = orders.map(order => (order.id));
 
 //         return Promise.all([
 //             pg('buyer_details').whereIn('userID', buyerIDs).select('userID', 'name', 'shop', 'address', 'phone'),
@@ -244,181 +169,176 @@ function LatestOrder(sellerID: number, startDate: Date, endDate: Date) {
 //         .then(([buyers, items, additionals]) => {
 //             return Promise.all([
 //                 buyers,
-//                 orders.map((order) => {
-//                     const buyer = buyers.find((user) => (user.userID === order.buyerID))
-//                     const orderItems = items.filter((item) => (item.orderID === order.id))
-//                     const orderAdds = additionals.filter((item) => (item.orderID === order.id))
+//                 orders.map(order => {
+//                     const buyer = buyers.find((user: any) => (user.userID === order.buyerID));
+//                     const orderItems = items.filter((item: any) => (item.orderID === order.id));
+//                     const orderAdds = additionals.filter((item: any) => (item.orderID === order.id));
 
-//                     const latestVersion = Math.max(...orderItems.map((item) => (item.revision)),
-// ...orderAdds.map((item) => (item.revision)))
+//                     const latestVersion = Math.max(
+//                         ...orderItems.map((item: any) => (item.revision)),
+//                         ...orderAdds.map((item: any) => (item.revision)),
+//                     );
 
-//                     const totalPrice = orderItems.filter((item) => (parseInt(item.revision,10) ===
-// latestVersion)).reduce((total, item) => {
-//                         return total + item.quantity * item.price
-//                     }, 0)
+//                    const totalPrice = orderItems.filter((item: any) =>
+//                        (parseInt(item.revision, 10) === latestVersion))
+//                     .reduce((total: any, item: any) => {
+//                         return total + item.quantity * item.price;
+//                     }, 0);
 
 //                     return lodash.assign(order, {
-//                         buyer: buyer, items: orderItems, totalPrice,
-//                         latestAdds: orderAdds.filter((item) => (latestVersion === parseInt(item.revision, 10))),
-//                         latestItems: orderItems.filter((item) => (latestVersion === parseInt(item.revision, 10))),
-//                     })
+//                         buyer, items: orderItems, totalPrice,
+//                         latestAdds: orderAdds.filter((item: any) => (latestVersion === parseInt(item.revision, 10))),
+//                        latestItems: orderItems.filter((item: any) =>
+//                            (latestVersion === parseInt(item.revision, 10))),
+//                     });
 //                 }),
-//                 pg('katalog').whereIn('id', items.map((item) => (item.itemID))),
-//             ])
-//         })
+
+//                 pg('katalog_ws').whereIn('id', items.map((item: any) => (item.itemID))),
+//             ]);
+//         });
 //     })
 //     .then(([buyers, orders, katalog]) => {
-//         var fileName = "report"
-//         stream.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-//         stream.setHeader('Content-Disposition', "attachment; filename='export_" + fileName + ".xlsx'");
-//         // var workbook = new Excel.stream.xlsx.WorkbookWriter({stream: stream});
-//         var workbook = new Excel.Workbook()
+//         const fileName = 'report';
+//         stream.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+//         stream.setHeader('Content-Disposition', 'attachment; filename=\'export_' + fileName + '.xlsx\'');
 
-//         function SimplerTime(datetime) {
-//             var d = new Date(datetime)
-//             d.setHours(d.getHours() + 7)
-//             const iso = d.toISOString()
-//             return `${iso.slice(0,10)} ${iso.slice(11,16)} (WIB)`
+//         const workbook = new Excel.Workbook();
+
+//         function SimplerTime(datetime: string) {
+//             const d = new Date(datetime);
+//             d.setHours(d.getHours() + 7);
+//             const iso = d.toISOString();
+//             return `${iso.slice(0, 10)} ${iso.slice(11, 16)} (WIB)`;
 //         }
 
-//         function FormatHarga(x) {
+//         function FormatHarga(x: number) {
 //             if (!x) {
 //                 return 0;
 //             }
-//             return x.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+//             return x.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
 //         }
 
-//         function Status(order) {
-//             if (order.cancelled) return "Dibatalkan"
-//             if (order.delivered) return "Telah Diterima"
-//             if (order.pickedup) return "Dalam Pengantaran"
-//             return "Sedang Diproses"
+//         function Status(order: any) {
+//             if (order.cancelled) return 'Dibatalkan';
+//             if (order.delivered) return 'Telah Diterima';
+//             if (order.pickedup) return 'Dalam Pengantaran';
+//             return 'Sedang Diproses';
 //         }
 
-//         var sheet = workbook.addWorksheet('detail pesanan');
-//         const columns = ['Tanggal Pemesanan', 'Pemesan', 'Alamat', 'No. Telp', 'Status', 'Total
-// Transaksi', 'Tanggal Pengantaran', 'Tanggal Diterima', 'Tanggal Pembatalan']
-//         sheet.addRow(columns).commit()
+//         const sheet = workbook.addWorksheet('detail pesanan');
+//         const columns = ['Tanggal Pemesanan', 'Pemesan', 'Alamat', 'No. Telp', 'Status', 'Total Transaksi',
+//             'Tanggal Pengantaran', 'Tanggal Diterima', 'Tanggal Pembatalan'];
+//         sheet.addRow(columns).commit();
 
-//         const buyerMap = buyers.reduce((accum, buyer) => {
-//             accum[buyer.userID] = buyer
-//             accum[buyer.userID].totalTransaksi = 0
-//             accum[buyer.userID].jumlahTransaksi = 0
-//             return accum
-//         }, {})
+//         const buyerMap = buyers.reduce((accum: any, buyer: any) => {
+//             accum[buyer.userID] = buyer;
+//             accum[buyer.userID].totalTransaksi = 0;
+//             accum[buyer.userID].jumlahTransaksi = 0;
+//             return accum;
+//         }, {});
 
-//         let totalTransaksi = 0
-//         orders.forEach((order) => {
-//             let row = []
-//             row.push(SimplerTime(order.created))
-//             row.push(order.buyer.shop)
-//             row.push(order.buyer.address)
-//             row.push(order.buyer.phone)
-//             row.push(Status(order))
-//             row.push(`Rp ${FormatHarga(order.totalPrice)}`)
-//             row.push(order.pickedup ? SimplerTime(order.pickedup) : "-")
-//             row.push(order.delivered ? SimplerTime(order.delivered) : "-")
-//             row.push(order.cancelled ? SimplerTime(order.cancelled) : "-")
+//         let totalTransaksi = 0;
+//         orders.forEach(order => {
+//             const row = [];
+//             row.push(SimplerTime(order.created));
+//             row.push(order.buyer.shop);
+//             row.push(order.buyer.address);
+//             row.push(order.buyer.phone);
+//             row.push(Status(order));
+//             row.push(`Rp ${FormatHarga(order.totalPrice)}`);
+//             row.push(order.pickedup ? SimplerTime(order.pickedup) : '-');
+//             row.push(order.delivered ? SimplerTime(order.delivered) : '-');
+//             row.push(order.cancelled ? SimplerTime(order.cancelled) : '-');
 
-//             totalTransaksi += order.totalPrice
-//             buyerMap[order.buyerID].totalTransaksi += order.totalPrice
-//             buyerMap[order.buyerID].jumlahTransaksi += 1
-//             sheet.addRow(row).commit()
-//         })
+//             totalTransaksi += order.totalPrice;
+//             buyerMap[order.buyerID].totalTransaksi += order.totalPrice;
+//             buyerMap[order.buyerID].jumlahTransaksi += 1;
+//             sheet.addRow(row).commit();
+//         });
 
-//         var buyerSheet = workbook.addWorksheet('retailer aktif')
-//         buyerSheet.addRow(['Nama Toko', 'Nama Pemilik', 'No. Telp', 'Alamat', 'Jumlah Transaksi', 'Total
-// Nilai Transaksi']).commit()
-//         const buyersOrdered = Object.keys(buyerMap).map((buyerID) => {
-//             const buyer = buyerMap[buyerID]
-//             return buyer
-//         }).sort((a, b) => ((a.totalTransaksi - b.totalTransaksi) * -1))
-//         buyersOrdered.forEach((buyer) => {
-//             let row = []
-//             row.push(buyer.shop)
-//             row.push(buyer.name)
-//             row.push(buyer.phone)
-//             row.push(buyer.address)
-//             row.push(buyer.jumlahTransaksi)
-//             row.push(buyer.totalTransaksi)
-//             buyerSheet.addRow(row).commit()
-//         })
+//         const buyerSheet = workbook.addWorksheet('retailer aktif');
+//         buyerSheet.addRow(['Nama Toko', 'Nama Pemilik', 'No. Telp', 'Alamat', 'Jumlah Transaksi',
+//             'Total Nilai Transaksi']).commit();
+//         const buyersOrdered = Object.keys(buyerMap).map(buyerID => {
+//             const buyer = buyerMap[buyerID];
+//             return buyer;
+//         }).sort((a, b) => ((a.totalTransaksi - b.totalTransaksi) * -1));
+//         buyersOrdered.forEach((buyer: any) => {
+//             const row = [];
+//             row.push(buyer.shop);
+//             row.push(buyer.name);
+//             row.push(buyer.phone);
+//             row.push(buyer.address);
+//             row.push(buyer.jumlahTransaksi);
+//             row.push(buyer.totalTransaksi);
+//             buyerSheet.addRow(row).commit();
+//         });
 
-//         const katalogMap = katalog.reduce((accum, item) => {
-//             accum[item.id] = item
-//             return accum
-//         }, {})
+//         const katalogMap = katalog.reduce((accum: any, item: any) => {
+//             accum[item.id] = item;
+//             return accum;
+//         }, {});
 
-//         var itemSheet = workbook.addWorksheet('detail barang')
+//         const itemSheet = workbook.addWorksheet('detail barang');
 //         itemSheet.addRow(['Tangal Pemesanan', 'Pemesan', 'No Telp', 'Nama Barang', 'Unit', 'Jumlah',
-// 'Harga Per Barang', 'Harga Total']).commit()
-//         orders.forEach((order) => {
-//             let row = []
-//             row.push(SimplerTime(order.created))
-//             row.push(order.buyer.shop)
-//             row.push(order.buyer.phone)
-//             order.latestItems.forEach((item) => {
-//                 const katalogItem = katalogMap[item.itemID] || {}
-//                 const itemRow = [...row]
+//             'Harga Per Barang', 'Harga Total']).commit();
+//         orders.forEach(order => {
+//             const row: any[] = [];
+//             row.push(SimplerTime(order.created));
+//             row.push(order.buyer.shop);
+//             row.push(order.buyer.phone);
+//             order.latestItems.forEach((item: any) => {
+//                 const katalogItem = katalogMap[item.itemID] || {};
+//                 const itemRow = [...row];
 
-//                 itemRow.push(katalogItem.name)
-//                 itemRow.push(item.unit)
-//                 itemRow.push(item.quantity)
-//                 itemRow.push(item.price)
-//                 itemRow.push(item.quantity * item.price)
-//                 itemSheet.addRow(itemRow).commit()
-//             })
+//                 itemRow.push(katalogItem.name);
+//                 itemRow.push(item.unit);
+//                 itemRow.push(item.quantity);
+//                 itemRow.push(item.price);
+//                 itemRow.push(item.quantity * item.price);
+//                 itemSheet.addRow(itemRow).commit();
+//             });
 
-//             order.latestAdds.forEach((item) => {
-//                 const itemRow = [...row]
+//             order.latestAdds.forEach((item: any) => {
+//                 const itemRow = [...row];
 
-//                 itemRow.push(item.name)
-//                 itemRow.push(item.unit)
-//                 itemRow.push(item.quantity)
-//                 itemRow.push(item.price)
-//                 itemRow.push(item.quantity * item.price)
-//                 itemSheet.addRow(itemRow).commit()
-//             })
-//         })
-
-//         // sheet.commit()
-
-//         var rekapSheet = workbook.addWorksheet('rekap');
-//         rekapSheet.addRow(['Jumlah Pesanan', orders.length + ' pesanan']).commit()
-//         rekapSheet.addRow(['Total Transaksi', `Rp ${FormatHarga(totalTransaksi)}`]).commit()
-//         rekapSheet.addRow(['Jumlah Sedang Diproses', orders.filter((order) => (Status(order) === "Sedang
-// Diproses")).length + ' pesanan']).commit()
-//         rekapSheet.addRow(['Jumlah Dalam Pengantaran', orders.filter((order) => (Status(order) ===
-// "Dalam Pengantaran")).length + ' pesanan']).commit()
-//         rekapSheet.addRow(['Jumlah Dalam Pengantaran', orders.filter((order) => (Status(order) ===
-// "Dalam Pengantaran")).length + ' pesanan']).commit()
-//         rekapSheet.addRow(['Jumlah Dibatalkan', orders.filter((order) => (Status(order) === "Dibatalkan")
-// ).length]).commit()
-//         // rekapSheet.commit()
-
-//         // console.log('--- 0')
-//         // // workbook.commit()
-//         // console.log('--- 1')
-//         // workbook.xlsx.write(stream)
-//         // console.log('--- 2')
-//         // stream.end()
-//         // console.log('--- 3')
-//         var tempFilePath = tempfile((new Date()).getTime(),toString() + '.xlsx');
-//         workbook.xlsx.writeFile(tempFilePath).then(function() {
-//             stream.sendFile(tempFilePath, function(err){
-//                 // console.log('---------- error downloading file: ' + err);
+//                 itemRow.push(item.name);
+//                 itemRow.push(item.unit);
+//                 itemRow.push(item.quantity);
+//                 itemRow.push(item.price);
+//                 itemRow.push(item.quantity * item.price);
+//                 itemSheet.addRow(itemRow).commit();
 //             });
 //         });
-//     })
+
+//         const rekapSheet = workbook.addWorksheet('rekap');
+//         rekapSheet.addRow(['Jumlah Pesanan', orders.length + ' pesanan']).commit();
+//         rekapSheet.addRow(['Total Transaksi', `Rp ${FormatHarga(totalTransaksi)}`]).commit();
+//         rekapSheet.addRow(['Jumlah Sedang Diproses',
+//             orders.filter(order => (Status(order) === 'Sedang Diproses')).length + ' pesanan']).commit();
+//         rekapSheet.addRow(['Jumlah Dalam Pengantaran',
+//             orders.filter(order => (Status(order) === 'Dalam Pengantaran')).length + ' pesanan']).commit();
+//         rekapSheet.addRow(['Jumlah Dalam Pengantaran',
+//             orders.filter(order => (Status(order) === 'Dalam Pengantaran')).length + ' pesanan']).commit();
+//         rekapSheet.addRow(['Jumlah Dibatalkan',
+//             orders.filter(order => (Status(order) === 'Dibatalkan')).length]).commit();
+
+//         const tempFilePath = tempfile((new Date()).getTime().toString() + '.xlsx');
+//         workbook.xlsx.writeFile(tempFilePath).then(() => {
+//             stream.sendFile(tempFilePath, (err: any) => {
+//                 throw new Error('Gagal mengirim report.');
+//             });
+//         });
+//     });
 // }
 
-// function LatestVersions(orders) {
-//     const orderIDs = orders.map((order) => (order.id))
+// function LatestVersions(orders: Order[]) {
+//     const orderIDs = orders.map(order => (order.id));
 
 //     return Promise.all([
 //         pg('order_items').innerJoin('katalog', 'katalog.id', 'order_items.itemID').whereIn('orderID',
 // orderIDs).select('orderID', 'name', 'unit', 'quantity', 'order_items.price as price', 'revision'),
-//         pg('additionals').whereIn('orderID', orderIDs)
+//         pg('additionals').whereIn('orderID', orderIDs),
 //     ])
 //     .then(([items, adds]) => {
 //         return orders.map((order) => {
@@ -436,14 +356,20 @@ function LatestOrder(sellerID: number, startDate: Date, endDate: Date) {
 //     })
 // }
 
-// function Buyers(orders) {
-//     const buyerIDs = lodash.uniq(orders.map((order) => (order.buyerID)))
-//     return pg('buyer_details').whereIn('userID', buyerIDs)
+// function Buyers(orders: Order[]) {
+//     const buyerIDs = lodash.uniq(orders.map(order => (order.buyerID)));
+//     return FetchBuyer([ ORM.WhereIn('userID', buyerIDs) ]);
 // }
 
-// export function AggregateBuyersReport(sellerID, startDate, endDate) {
-//     return AddTimeLimit(pg('orders').where({sellerID}).whereNull('cancelled') , startDate, endDate)
-//     .then((orders) => {
+// export function AggregateBuyersReport(sellerID: number, startDate: Date, endDate: Date) {
+//     const builders = [
+//         ...TimeLimitBuilder(startDate, endDate),
+//         ORM.WhereNull('cancelled'),
+//         ORM.Where({ sellerID }),
+//     ];
+
+//     return FetchOrders(builders)
+//     .then(orders => {
 //         return Promise.all([Buyers(orders), LatestVersions(orders)])
 //     })
 //     .then(([buyers, orders]) => {
@@ -479,6 +405,11 @@ function LatestOrder(sellerID: number, startDate: Date, endDate: Date) {
 //         }), (detail) => (-1 * detail.valueOfTransactions))
 //     })
 // }
+
+export default {
+    Dashboard,
+    // ExportOrders,
+};
 
 // export function BuyerReport(sellerID, buyerID, startDate, endDate) {
 //     return AddTimeLimit(pg('orders').where({sellerID, buyerID}).whereNull('cancelled') , startDate, endDate)

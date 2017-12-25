@@ -114,10 +114,28 @@ function Details(userID: number) {
     .then(sellers => sellers.map(AddCity));
 }
 
+function Update(sellerID: number, seller: any) {
+    return FetchSellers([
+        ORM.Where({ sellerID }),
+        ORM.Update({
+            ...seller,
+        }),
+    ]);
+}
+
+function UpdateImage(sellerID: number, name: string, image: string) {
+    return FetchSellers([
+        ORM.Where({ sellerID }),
+        ORM.Update({ [name]: image }),
+    ]);
+}
+
 export default {
     CreateSeller,
     Details,
     GetByPhone,
     GetByUsername,
     MarkNeedSync,
+    Update,
+    UpdateImage,
 };
