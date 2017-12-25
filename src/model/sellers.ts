@@ -2,7 +2,7 @@ import * as Bluebird from 'bluebird';
 
 import { Omit } from '../util/type';
 
-import { ORM, Table } from './index';
+import pg, { Fetch, FetchFactory, JoinFactory, ORM, Table } from './index';
 import { CreateUser, User, UserType } from './users';
 
 export interface Seller {
@@ -25,25 +25,35 @@ export interface Seller {
     userID: string;
 }
 
-const FetchSellers = ORM.Fetch<Seller>(Table.sellers);
-const FetchUsersSellers = ORM.FetchJoin<User, Seller>(Table.users, Table.sellers, 'seller_details.userID', 'users.id');
+const FetchSellers = FetchFactory<Seller>(pg(Table.sellers));
+const JoinUsersSellers = JoinFactory(
+    pg(Table.users), pg(Table.sellers), 'seller_details.userID', 'users.id', 'sellers');
 
 function CreateSeller(seller: Omit<Seller, 'userID'>, userData: Omit<User, 'id'>): Bluebird<Seller> {
     return CreateUser(userData)
     .then(createdUser => {
         return FetchSellers([
-            ORM.Insert({ ...seller, userID: createdUser.id }),
+            ORM.Insert({
+                ...seller,
+                hasbeenverified: seller.hasbeenverified || null,
+                image: seller.image || null,
+                latitude: seller.latitude || null,
+                longitude: seller.longitude || null,
+                userID: createdUser.id,
+            }),
         ])
         .then(users => users[0]);
     });
 }
 
 function GetByPhone(phone: string): Bluebird<Array<User & Seller>> {
-    return FetchUsersSellers([
-        ORM.FilterBy({ type: UserType.seller }),
-    ], [
-        ORM.FilterBy({ phone }),
-    ])
+    return Fetch<User & Seller>(
+        JoinUsersSellers([
+            ORM.Where({ type: UserType.seller }),
+        ], [
+            ORM.Where({ phone }),
+        ]),
+    )
     .then(users => {
         if (users.length === 0) {
             throw new Error('Seller tidak ditemukan');
@@ -54,9 +64,11 @@ function GetByPhone(phone: string): Bluebird<Array<User & Seller>> {
 }
 
 function GetByUsername(username: string): Bluebird<Array<User & Seller>> {
-    return FetchUsersSellers([
-        ORM.FilterBy({ username, type: UserType.seller }),
-    ])
+    return Fetch<User & Seller>(
+        JoinUsersSellers([
+            ORM.Where({ username, type: UserType.seller }),
+        ]),
+    )
     .then(users => {
         if (users.length === 0) {
             throw new Error('Seller tidak ditemukan');
@@ -66,8 +78,16 @@ function GetByUsername(username: string): Bluebird<Array<User & Seller>> {
     });
 }
 
+function MarkNeedSync(userID: string) {
+    return FetchSellers([
+        ORM.Where({ userID }),
+        ORM.Update({ needSync: true }),
+    ]);
+}
+
 export default {
     CreateSeller,
     GetByPhone,
     GetByUsername,
+    MarkNeedSync,
 };

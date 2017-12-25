@@ -1,6 +1,8 @@
 import express from 'express';
 
+import * as Relations from '../../model/buyerRelations';
 import Buyers from '../../model/buyers';
+import { CleanQuery } from '../../util/obj';
 import { IsPhone, Middleware} from '../../util/validation';
 
 import { ParseLimitOffset } from '../middleware/helper';
@@ -9,7 +11,7 @@ function List(req: express.Request, res: express.Response, next: express.NextFun
     const {user, params} = req.kulakan;
     const filters = {
         limit: params.limit,
-        name: req.query.filter,
+        name: CleanQuery(req.query.filter),
         offset: params.offset,
         sortBy: req.query.sortBy,
         sortOrder: req.query.sortOrder,
@@ -51,7 +53,7 @@ function Activate(req: express.Request, res: express.Response, next: express.Nex
             return;
         }
 
-        return Buyers.Activate(sellerID, buyers[0].userID)
+        return Relations.Activate(sellerID, buyers[0].userID)
         .then(message => {
             res.send({message});
         });
@@ -69,7 +71,7 @@ function Deactivate(req: express.Request, res: express.Response, next: express.N
             return;
         }
 
-        return Buyers.Deactivate(sellerID, buyers[0].userID)
+        return Relations.Deactivate(sellerID, buyers[0].userID)
         .then(message => {
             res.send({message});
         });
@@ -86,7 +88,7 @@ function ChangeTier(req: express.Request, res: express.Response, next: express.N
     const user = req.kulakan.user;
     const buyerID = parseInt(req.params.id, 10);
 
-    return Buyers.ChangeTier(user.id, buyerID, req.body.tier)
+    return Relations.ChangeTier(user.id, buyerID, req.body.tier)
     .then(() => {
         res.send({ status: 'Sukses ganti tier' });
     });

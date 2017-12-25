@@ -1,7 +1,7 @@
 import * as Bluebird from 'bluebird';
 
 import { Buyer } from './buyers';
-import pg, { BuilderFn, ORM, Selector, Table } from './index';
+import pg, { BuilderFn, CountFactory, Extender, FetchAndCount, Join, ORM, Selector, Table  } from './index';
 import { AddItems, OrderItemsList } from './orderItems';
 import { Seller } from './sellers';
 
@@ -51,9 +51,9 @@ interface DetailedOrderList {
     orders: DetailedOrder[];
 }
 
-const CountOrder = ORM.Count(Table.orders);
+const CountOrder = CountFactory(pg(Table.orders));
 
-function FetchOrderWithCount(
+export function FetchOrderWithCount(
     orderBuilders: BuilderFn[],
     sellerBuilders: BuilderFn[] = [],
     buyerBuilders: BuilderFn[] = [],
@@ -62,37 +62,23 @@ function FetchOrderWithCount(
 ): Bluebird<DetailedOrderList> {
     const selector = Selector(['details', 'seller', 'buyer']);
 
-    const buyerBuilt = buyerBuilders.reduce((accum, builder) => {
-        return builder(accum);
-    }, pg(Table.buyers));
+    const buyerQuery = Extender(pg(Table.buyers), buyerBuilders);
+    const sellerQuery = Extender(pg(Table.sellers), sellerBuilders);
 
-    const sellerBuilt = sellerBuilders.reduce((accum, builder) => {
-        return builder(accum);
-    }, pg(Table.sellers));
+    const completeQuery = [pg.from('orders as details')]
+        .map(query => Join(query, sellerQuery, 'details.sellerID', 'seller.userID', 'seller'))
+        .map(query => Join(query, buyerQuery, 'details.buyerID', 'buyer.userID', 'buyer'))
+        .map(query => Extender(query, orderBuilders))
+        [0];
 
-    const baseBuilder = pg.select(...selector)
-    .from('orders as details')
-    .join(pg.raw('(' + sellerBuilt + ') as seller'), 'details.sellerID', 'seller.userID')
-    .join(pg.raw('(' + buyerBuilt + ') as buyer'), 'details.buyerID', 'buyer.userID')
-    .orderBy('details.id', 'desc')
-    .limit(limit).offset(offset);
-
-    const countBuilder = pg.from('orders as details')
-    .join(pg.raw('(' + sellerBuilt + ') as seller'), 'details.sellerID', 'seller.userID')
-    .join(pg.raw('(' + buyerBuilt + ') as buyer'), 'details.buyerID', 'buyer.userID');
-
-    const completeQuery = orderBuilders.reduce((accum, builder) => {
-        return accum.map(builder);
-    }, [baseBuilder, countBuilder]);
-
-    return Bluebird.all([
-        completeQuery[0].then(result => result),
-        completeQuery[1].count('details.id'),
-    ])
-    .then(([orders, counts]: [DetailedOrder[], Array<{ count: number }>]) => {
+    return FetchAndCount<DetailedOrder>(
+        completeQuery,
+        { limit, offset, sortBy: 'details.id', sortOrder: 'desc', columns: selector },
+    )
+    .then(({ count, result }) => {
         return {
-            count: counts[0].count,
-            orders,
+            count,
+            orders: result,
         };
     });
 }
@@ -100,35 +86,35 @@ function FetchOrderWithCount(
 function OrderStatusFilter(status: OrderStatus): BuilderFn[] {
     switch ('details.' + status) {
         case OrderStatus.created: return [
-            ORM.FilterNull(OrderStatus.accepted),
-            ORM.FilterNull(OrderStatus.cancelled),
+            ORM.WhereNull(OrderStatus.accepted),
+            ORM.WhereNull(OrderStatus.cancelled),
         ];
 
         case OrderStatus.accepted: return [
-            ORM.FilterNotNull(OrderStatus.accepted),
-            ORM.FilterNull(OrderStatus.pickedup),
-            ORM.FilterNull(OrderStatus.cancelled),
+            ORM.WhereNotNull(OrderStatus.accepted),
+            ORM.WhereNull(OrderStatus.pickedup),
+            ORM.WhereNull(OrderStatus.cancelled),
         ];
 
         case OrderStatus.assigned: return [
-            ORM.FilterNotNull(OrderStatus.assigned),
-            ORM.FilterNull(OrderStatus.pickedup),
-            ORM.FilterNull(OrderStatus.cancelled),
+            ORM.WhereNotNull(OrderStatus.assigned),
+            ORM.WhereNull(OrderStatus.pickedup),
+            ORM.WhereNull(OrderStatus.cancelled),
         ];
 
         case OrderStatus.pickedup: return [
-            ORM.FilterNotNull(OrderStatus.pickedup),
-            ORM.FilterNull(OrderStatus.delivered),
-            ORM.FilterNull(OrderStatus.cancelled),
+            ORM.WhereNotNull(OrderStatus.pickedup),
+            ORM.WhereNull(OrderStatus.delivered),
+            ORM.WhereNull(OrderStatus.cancelled),
         ];
 
         case OrderStatus.delivered: return [
-            ORM.FilterNotNull(OrderStatus.delivered),
-            ORM.FilterNull(OrderStatus.cancelled),
+            ORM.WhereNotNull(OrderStatus.delivered),
+            ORM.WhereNull(OrderStatus.cancelled),
         ];
 
         case OrderStatus.cancelled: return [
-            ORM.FilterNotNull(OrderStatus.cancelled),
+            ORM.WhereNotNull(OrderStatus.cancelled),
         ];
 
         default: return [];
@@ -149,9 +135,7 @@ function List(
         builders = builders.concat(OrderStatusFilter(params.status));
     }
 
-    return FetchOrderWithCount([
-        ...builders,
-    ], sellerBuilders, buyerBuilders, params.limit, params.offset)
+    return FetchOrderWithCount(builders, sellerBuilders, buyerBuilders, params.limit, params.offset)
     .then(orders => {
         return AddItems(orders.orders)
         .then(ordersWithItems => {
@@ -164,15 +148,15 @@ function List(
 }
 
 function ListByBuyer(buyerID: string, params: OrderParams) {
-    return List([ ORM.FilterBy({ buyerID }) ], [], [ORM.FilterBy({ userID: buyerID })], params);
+    return List([ ORM.Where({ buyerID }) ], [], [ORM.Where({ userID: buyerID })], params);
 }
 
 function ListBySeller(sellerID: string, params: OrderParams) {
-    return List([ ORM.FilterBy({ sellerID }) ], [ORM.FilterBy({ userID: sellerID })], [], params);
+    return List([ ORM.Where({ sellerID }) ], [ORM.Where({ userID: sellerID })], [], params);
 }
 
 function Details(sellerID: string, orderID: string) {
-    return List([ ORM.FilterBy({ sellerID, 'details.id': orderID }) ], [ORM.FilterBy({ userID: sellerID })], [], {
+    return List([ ORM.Where({ sellerID, 'details.id': orderID }) ], [ORM.Where({ userID: sellerID })], [], {
         limit: 1,
         offset: 0,
     })
@@ -183,10 +167,7 @@ function Details(sellerID: string, orderID: string) {
 }
 
 function ListUnread(userID: string) {
-    return CountOrder([
-        ORM.FilterBy({ read: false, sellerID: userID }),
-    ])
-    .then(result => result);
+    return CountOrder([ORM.Where({ read: false, sellerID: userID })]);
 }
 
 export default {

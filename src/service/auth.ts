@@ -3,7 +3,7 @@ import * as crypto from 'crypto';
 import * as jwt from 'jsonwebtoken';
 
 import * as config from '../config.json';
-import Buyers, { Buyer } from '../model/buyers';
+import Buyers, { Buyer, BuyerInsertParams } from '../model/buyers';
 import Sellers, { Seller } from '../model/sellers';
 import Users, { User, UserType } from '../model/users';
 import { Omit } from '../util/type';
@@ -37,7 +37,7 @@ function RandomBytes(length = 512): string {
     return crypto.randomBytes(length).toString('hex');
 }
 
-function CreateToken(userID: string, notificationID?: string): Bluebird<string> {
+function CreateToken(userID: number, notificationID?: string): Bluebird<string> {
     const token = RandomBytes();
     return Users.SetToken(userID, token, notificationID)
     .then(usedToken => {
@@ -56,7 +56,7 @@ function CalculateSaltHash(password: string) {
     return { hash, salt };
 }
 
-function RegisterBuyer(login: Login, buyer: Omit<Buyer, 'userID'>): Bluebird<Buyer> {
+function RegisterBuyer(login: Login, buyer: BuyerInsertParams): Bluebird<Buyer> {
     const { hash, salt } = CalculateSaltHash(login.password);
     return Buyers.CreateBuyer(buyer, {
         hash,
@@ -76,7 +76,7 @@ function RegisterSeller(login: Login, seller: Omit<Seller, 'userID'>): Bluebird<
     });
 }
 
-function ChangePassword(userID: string, password: string) {
+function ChangePassword(userID: number, password: string) {
     const { salt, hash } = CalculateSaltHash(password);
     return Users.SetSaltHash(userID, { salt, hash });
 }

@@ -1,6 +1,6 @@
 import * as Bluebird from 'bluebird';
 
-import { ORM, Table } from './index';
+import pg, { FetchFactory, ORM, Table } from './index';
 
 export enum DeliveryOptionsType {
     delivery = 'delivery',
@@ -13,11 +13,11 @@ interface DeliveryOptions {
     userID: string;
 }
 
-const FetchDeliveryOptions = ORM.Fetch<DeliveryOptions>(Table.deliveryOptions);
+const FetchDeliveryOptions = FetchFactory<DeliveryOptions>(pg(Table.deliveryOptions));
 
 function GetDeliveryOptions(userID: string): Bluebird<DeliveryOptionsType[]> {
     return FetchDeliveryOptions([
-        ORM.FilterBy({ userID, active: true }),
+        ORM.Where({ userID, active: true }),
     ])
     .then(options => {
         if (options.length !== 0) return options.map(opt => opt.options);

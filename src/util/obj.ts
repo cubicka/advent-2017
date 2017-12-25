@@ -4,24 +4,6 @@ export function IsArray(x: any) {
     return Object.prototype.toString.call(x) === '[object Array]';
 }
 
-// export function ValidateObj(obj: object, attrs: object) {
-//     return Object.keys(attrs).reduce((isValidated, attr) => {
-//         if (typeof attr === "string") {
-//             return isValidated && obj.hasOwnProperty(attr)
-//         }
-
-//         return attr.reduce((isValidatedDeep, attrsDeep, key): boolean => {
-//             return isValidatedDeep && obj.hasOwnProperty(key) && ValidateObj(obj[key], attrsDeep)
-//         }, isValidated)
-//     }, true)
-// }
-
-// export function ValidateArr(arr, attrs) {
-//     return arr.reduce((isValidated, obj) => {
-//         return isValidated && ValidateObj(obj, attrs)
-//     }, true)
-// }
-
 export function ProjectObj<T, K extends keyof T>(obj: T, attrs: K[]): Pick<T, K> {
     if (!obj) return obj;
 
@@ -85,3 +67,21 @@ export function MergeDeep(target: any, source: any) {
 
     return output;
 }
+
+export function CleanQuery(s: string) {
+    if (s === undefined) return s;
+    const trimmed = s.trim();
+
+    if (trimmed[0] === '\"' && trimmed[trimmed.length - 1] === '\"') {
+        return trimmed.substring(1, trimmed.length - 1);
+    }
+
+    return trimmed;
+}
+
+// export function NullifyUndefined<T, K extends keyof T>(obj: T, attrs: K[]): T & Pick<T, K> {
+//     return attrs.reduce((accum, attr) => {
+//         accum[attr] = accum[attr] || null;
+//         return accum;
+//     }, lodash.assign({}, obj) as T & Pick<T, K>);
+// }

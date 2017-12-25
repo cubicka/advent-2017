@@ -1,4 +1,6 @@
-import { ORM, Table } from './index';
+import * as Bluebird from 'bluebird';
+
+import pg, { Fetch, FetchFactory, JoinFactory, ORM, Table } from './index';
 import { Katalog } from './katalog';
 
 export interface ItemPrices {
@@ -13,21 +15,76 @@ export interface ItemPrices {
     active: boolean;
 }
 
-const FetchItemPrices = ORM.Fetch<ItemPrices>(Table.itemPrices);
-const FetchKatalogOrderItems = ORM.FetchJoin<Katalog, ItemPrices>(
-    Table.katalog, Table.itemPrices,
+export const FetchItemPrices = FetchFactory<ItemPrices>(pg(Table.itemPrices));
+export const JoinKatalogOrderItems = JoinFactory(
+    pg(Table.katalog),
+    pg(Table.itemPrices),
     'katalog.id',
     'item_prices.itemID',
+    'item_prices',
 );
 
 export function FetchItemPricesByIDs(ids: string[]) {
     return FetchItemPrices([
-        ORM.FilterIn('id', ids),
+        ORM.WhereIn('id', ids),
     ]);
 }
 
 export function FetchKatalogItemPricesByIDs(ids: string[]) {
-    return FetchKatalogOrderItems([], [
-        ORM.FilterIn('id', ids),
-    ]);
+    return Fetch<Katalog & ItemPrices>(
+        JoinKatalogOrderItems([], [ORM.WhereIn('id', ids)]),
+    );
+}
+
+function NormalizePrice(prices: number[]) {
+    const leftMostNonZeroPrices = prices.reduce((accum, price) => {
+        if (accum > 0) return accum;
+        return price;
+    }, 0);
+
+    const mapZeroPrices = prices.reduce((accum, price) => {
+        if (price !== 0) return accum.concat([price]);
+        if (accum.length === 0) return accum.concat([leftMostNonZeroPrices]);
+        return accum.concat([accum[accum.length - 1]]);
+    }, [] as number[]);
+
+    return mapZeroPrices.filter(x => (x > 0)).sort((a, b) => (b - a));
+}
+
+export function UpdatePrices(sellerID: number, itemID: number, prices: Array<{unit: string, prices: number[]}> = []) {
+    return FetchItemPrices([
+        ORM.Where({itemID, sellerID}),
+        ORM.Update({active: false}, ['id']),
+    ])
+    .then(prevPrices => {
+        return Bluebird.reduce(prices, (accum, price, idx) => {
+            const orderedPrice = NormalizePrice(price.prices);
+
+            if (idx < prevPrices.length) {
+                return FetchItemPrices([
+                    ORM.Where({id: prevPrices[idx].id}),
+                    ORM.Update({
+                        price: orderedPrice[0],
+                        price2: orderedPrice[1] || 0,
+                        price3: orderedPrice[2] || 0,
+                        price4: orderedPrice[3] || 0,
+                        unit: price.unit,
+                        active: true,
+                    }),
+                ]);
+            }
+
+            return FetchItemPrices([
+                ORM.Insert({
+                    price: orderedPrice[0],
+                    price2: orderedPrice[1] || 0,
+                    price3: orderedPrice[2] || 0,
+                    price4: orderedPrice[3] || 0,
+                    unit: price.unit,
+                    active: true,
+                    itemID, sellerID,
+                }),
+            ]);
+        }, []);
+    });
 }

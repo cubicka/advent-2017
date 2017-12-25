@@ -1,8 +1,6 @@
 import * as Bluebird from 'bluebird';
 
-import { Omit } from '../util/type';
-
-import { ORM, Table } from './index';
+import pg, { FetchFactory, ORM, Table } from './index';
 
 export enum UserType {
     admin = 'admin',
@@ -11,60 +9,87 @@ export enum UserType {
     seller = 'seller',
 }
 
-export interface User {
+export interface UserInsertParams {
     hash: string;
-    id: string;
     notificationID?: string;
     salt: string;
     token?: string;
     type: UserType;
     username: string;
-    updated_at?: string;
     verified?: boolean;
 }
 
-export const FetchUsers = ORM.Fetch<User>(Table.users);
+export interface User extends UserInsertParams {
+    id: number;
+    updated_at?: string;
+}
 
-export function CreateUser(user: Omit<User, 'id'>): Bluebird<User> {
-    return FetchUsers([ ORM.FilterBy({ username: user.username }) ])
+const FetchUsers = FetchFactory<User>(pg(Table.users));
+
+export function CreateUser(user: UserInsertParams): Bluebird<User> {
+    return FetchUsers([
+        ORM.Where({ username: user.username }),
+    ])
     .then(users => {
         if (users.length > 0 && users.some(u => u.verified === true)) throw new Error('User telah terdaftar');
 
+        if (users.length > 0) {
+            return FetchUsers([
+                ORM.Where({ id: users[0].id }),
+                ORM.Update({
+                    ...user,
+                    notificationID: user.notificationID || null,
+                    token: user.token || null,
+                    verified: user.verified || null,
+                }, ['id']),
+            ]);
+        }
+
         return FetchUsers([
-            ORM.Insert({ ...user }, ['id']),
-        ])
-        .then(createdUsers => createdUsers[0]);
-    });
+            ORM.Insert({
+                ...user,
+                notificationID: user.notificationID || null,
+                token: user.token || null,
+                verified: user.verified || null,
+        }, ['id']),
+        ]);
+    })
+    .then(createdUsers => createdUsers[0]);
 }
 
 function GetByToken(token: string): Bluebird<User[]> {
-    return FetchUsers([ ORM.FilterBy({ token }) ]);
+    return FetchUsers([ ORM.Where({ token }) ]);
 }
 
 function GetByUsername(username: string): Bluebird<User[]> {
-    return FetchUsers([ ORM.FilterBy({username}) ]);
+    return FetchUsers([ ORM.Where({username}) ]);
 }
 
-function SetSaltHash(id: string, { salt, hash }: { salt: string, hash: string }) {
-    return FetchUsers([ ORM.FilterBy({ id }) ])
+function SetSaltHash(id: number, { salt, hash }: { salt: string, hash: string }) {
+    return FetchUsers([ ORM.Where({ id }) ])
     .then(users => {
         if (users.length !== 1) throw new Error('User tidak ditemukan');
         return FetchUsers([
-            ORM.FilterBy({id}),
+            ORM.Where({ id }),
             ORM.Update({ salt, hash }),
         ]);
     });
 }
 
-function SetToken(id: string, token: string, notificationID?: string): Bluebird<string> {
-    const builders = [ ORM.FilterBy({id}), ORM.Select('token', 'updated_at') ];
+function SetToken(id: number, token: string, notificationID?: string): Bluebird<string> {
+    const builders = [ ORM.Where({id}), ORM.Select('token', 'updated_at') ];
 
     return FetchUsers(builders)
-    .then((users: User[]) => {
+    .then(users => {
         if (users.length === 0) throw new Error('User tidak ditemukan.');
 
         const now = new Date();
-        const lastUpdate = new Date(users[0].updated_at || '');
+        const lastUpdateInString = users[0].updated_at;
+
+        let lastUpdate = new Date();
+        if (lastUpdateInString !== undefined) {
+            lastUpdate = new Date(lastUpdateInString);
+        }
 
         let targetToken = users[0].token || token;
         if (now.getTime() - lastUpdate.getTime() > 7 * 24 * 3600 * 1000) {
@@ -72,9 +97,9 @@ function SetToken(id: string, token: string, notificationID?: string): Bluebird<
         }
 
         const updateBuilders = [
-            ORM.FilterBy({id}),
+            ORM.Where({ id }),
             ORM.Update({
-                notificationID: notificationID || '',
+                notificationID: notificationID || null,
                 token: targetToken,
                 updated_at: now,
             }),

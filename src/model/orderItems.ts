@@ -1,7 +1,9 @@
 import * as Bluebird from 'bluebird';
 import * as lodash from 'lodash';
 
-import { ORM, Table } from './index';
+import { ChangeImageUrl } from '../service/image';
+
+import pg, { Fetch, FetchFactory, JoinFactory, ORM, Table } from './index';
 import { FetchItemPricesByIDs, ItemPrices } from './itemPrices';
 import { Katalog } from './katalog';
 import { DetailedOrder } from './orders';
@@ -32,59 +34,37 @@ export interface OrderItemsList {
     };
 }
 
-const FetchOrderAdditionals = ORM.Fetch<OrderAdditionals>(Table.additionals);
-const FetchOrderItems = ORM.Fetch<OrderItems>(Table.orderItems);
+const FetchOrderAdditionals = FetchFactory<OrderAdditionals>(pg(Table.additionals));
+const FetchOrderItems = FetchFactory<OrderItems>(pg(Table.orderItems));
 
-const FetchKatalogOrderItems = ORM.FetchJoin<OrderItems, Katalog>(
-    Table.katalog, Table.orderItems,
-    'katalog.id',
-    'order_items.itemID',
+const JoinKatalogOrderItems = JoinFactory(
+    pg(Table.katalog), pg(Table.orderItems),
+    'katalog.id', 'order_items.itemID', 'order_items',
 );
-
-function ChangeImageUrl(item: Katalog & OrderItems) {
-    if (!item.image) return item;
-
-    const fullUrl = item.image;
-    const splittedUrl = fullUrl.split('/');
-
-    const fileName = splittedUrl[splittedUrl.length - 1];
-    const splittedFileName = fileName.split('.');
-    const extension = splittedFileName[splittedFileName.length - 1];
-
-    const prefix = 'https://rulo-katalog.s3.amazonaws.com';
-    const subs = ['img512', 'img256', 'img128', 'img64', 'img32'];
-
-    return subs.reduce((accum, sub) => {
-        return Object.assign(accum, {
-            [sub]: (extension !== 'png') ? `${prefix}/${sub}/${fileName}` : `${prefix}/${fileName}`,
-        });
-    }, Object.assign(item, {
-        image: `${prefix}/img256/${fileName}`,
-        imageFull: item.image,
-    }));
-}
 
 export function AddItems(orders: DetailedOrder[]) {
     const ids = orders.map(order => (order.details.id));
     return Bluebird.all([
-        FetchKatalogOrderItems([
-            ORM.Select(
-                'orderID',
-                'itemID',
-                'name',
-                'image',
-                'order_items.price',
-                'unit',
-                'quantity',
-                'priceID',
-                'revision',
-                'category',
-            ),
-        ], [
-            ORM.FilterIn('orderID', ids),
-        ]),
+        Fetch<Katalog & OrderItems>(
+            JoinKatalogOrderItems([
+                ORM.Select(
+                    'orderID',
+                    'itemID',
+                    'name',
+                    'image',
+                    'order_items.price',
+                    'unit',
+                    'quantity',
+                    'priceID',
+                    'revision',
+                    'category',
+                ),
+            ], [
+                ORM.WhereIn('orderID', ids),
+            ]),
+        ),
         FetchOrderAdditionals([
-            ORM.FilterIn('orderID', ids),
+            ORM.WhereIn('orderID', ids),
             ORM.Select('name', 'unit', 'quantity', 'price', 'orderID', 'revision'),
         ]),
     ])

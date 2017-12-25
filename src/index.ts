@@ -1,5 +1,6 @@
 import * as http from 'http';
 import app from './server';
+import { SimpleDate } from './util/date';
 
 const port = normalizePort(process.env.PORT || '3001');
 
@@ -9,7 +10,7 @@ server.on('error', onError);
 server.on('listening', onListening);
 
 // tslint:disable-next-line:no-console
-console.log('listen to', port);
+console.log(`${SimpleDate(new Date())}, listen to ${port}`);
 
 function normalizePort(val: string) {
     const normalizedPort = parseInt(val, 10);

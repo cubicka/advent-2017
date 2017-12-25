@@ -4,15 +4,16 @@ import knex from 'knex';
 import { Normalize } from '../util/phone';
 import { Omit } from '../util/type';
 
-import { ORM, Table } from './index';
+import { Relations } from './buyerRelations';
+import pg, { Fetch, FetchAndCount, FetchFactory, JoinFactory, ORM, Table } from './index';
 import { CreateUser, User } from './users';
 
-export interface Buyer {
+export interface BuyerInsertParams {
     address: string;
     cityID: string;
     ktp?: string;
-    latitude?: string;
-    longitude?: string;
+    latitude?: number;
+    longitude?: number;
     name: string;
     phone: string;
     profilePicture?: string;
@@ -20,39 +21,35 @@ export interface Buyer {
     shop: string;
     signature?: string;
     stateID: string;
-    userID: string;
     verification?: string;
-    wsrange?: string;
     zipcode?: string;
 }
 
-export enum RelationsTier {
-    normal = 'normal',
-    bronze = 'bronze',
-    silver = 'silver',
-    gold = 'gold',
-}
-
-export interface Relations {
-    buyerID: string;
+export interface Buyer extends BuyerInsertParams {
     id: number;
-    sellerID: string;
-    type: RelationsTier;
-    active: boolean;
+    userID: number;
 }
 
-const FetchBuyer = ORM.Fetch<Buyer>(Table.buyers);
-const FetchRelations = ORM.Fetch<Relations>(Table.buyersRelations);
-const FetchLeftJoinBuyerDetailsRelations = ORM.FetchLeftJoin<Relations,  Buyer>(
-    Table.buyers, Table.buyersRelations, 'buyer_details.userID', 'buyer_relations.buyerID');
-const FetchAndCountBuyerDetailsRelations = ORM.FetchJoinAndCount<Relations,  Buyer>(
-    Table.buyers, Table.buyersRelations, 'buyer_details.userID', 'buyer_relations.buyerID');
+export const FetchBuyer = FetchFactory<Buyer>(pg(Table.buyers));
+export const JoinBuyerRelations = JoinFactory(
+    pg(Table.buyers), pg(Table.buyersRelations), 'buyer_details.userID', 'buyer_relations.buyerID', 'buyer_relations');
 
-function CreateBuyer(seller: Omit<Buyer, 'userID'>, userData: Omit<User, 'id'>): Bluebird<Buyer> {
+function CreateBuyer(buyer: BuyerInsertParams, userData: Omit<User, 'id'>): Bluebird<Buyer> {
     return CreateUser(userData)
     .then(createdUser => {
         return FetchBuyer([
-            ORM.Insert({ ...seller, userID: createdUser.id }),
+            ORM.Insert({
+                ...buyer,
+                ktp: buyer.ktp || null,
+                latitude: buyer.latitude || null,
+                longitude: buyer.longitude || null,
+                profilePicture: buyer.profilePicture || null,
+                selfie: buyer.selfie || null,
+                signature: buyer.signature || null,
+                verification: buyer.verification || null,
+                zipcode: buyer.zipcode || null,
+                userID: createdUser.id,
+            }),
         ])
         .then(users => users[0]);
     });
@@ -71,7 +68,8 @@ function ListForSeller(sellerID: string, {limit, name = '', offset, sortBy = '',
         switch (sortBy.toLowerCase()) {
             case 'name': return ['name', 'asc'];
             case 'shop': return ['shop', 'asc'];
-            default: return ['buyer_relations.created_at', 'desc'];
+            // default: return ['buyer_relations.created_at', 'desc'];
+            default: return ['name', 'desc'];
         }
     }
 
@@ -86,8 +84,8 @@ function ListForSeller(sellerID: string, {limit, name = '', offset, sortBy = '',
     const sortByParam = SortByParam();
     const sortOrderParam = SortOrderParam(sortByParam[1]);
 
-    return FetchAndCountBuyerDetailsRelations([
-        ORM.FilterBy(function(this: knex.QueryBuilder) {
+    const query = JoinBuyerRelations([
+        ORM.Where(function(this: knex.QueryBuilder) {
             const nameTokens = name.split(' ').map(s => (s.replace(/[^0-9a-z]/gi, ''))).filter(s => (s.length > 0));
 
             nameTokens.forEach(token => {
@@ -97,22 +95,24 @@ function ListForSeller(sellerID: string, {limit, name = '', offset, sortBy = '',
             });
         }),
     ], [
-        ORM.FilterBy({ sellerID }),
-    ], {
+        ORM.Where({ sellerID }),
+    ]);
+
+    return FetchAndCount<Buyer & Relations>(query, {
         limit, offset, sortBy: sortByParam[0], sortOrder: sortOrderParam,
     })
-    .then(({ count, list }) => {
+    .then(({ result, count }) => {
         return {
             count,
-            retailers: list,
+            retailers: result,
         };
     });
 }
 
 function ListByPhone(phone: string) {
-    return FetchLeftJoinBuyerDetailsRelations([
-        ORM.FilterBy({phone: Normalize(phone)}),
-    ])
+    return Fetch<Buyer & Relations>(
+        JoinBuyerRelations([ORM.Where({phone: Normalize(phone)})], []),
+    )
     .then(buyers => {
         return buyers.map(buyer => {
             return Object.assign(buyer, {
@@ -123,68 +123,8 @@ function ListByPhone(phone: string) {
     });
 }
 
-function Activate(sellerID: string, buyerID: string) {
-    return FetchRelations([
-        ORM.FilterBy({ buyerID, sellerID }),
-    ])
-    .then(relations => {
-        if (relations.length === 0) {
-            return FetchRelations([
-                ORM.Insert({
-                    buyerID, sellerID,
-                    active: true,
-                    tier: 'normal',
-                }),
-            ]);
-        }
-
-        return FetchRelations([
-            ORM.FilterBy({ id: relations[0].id }),
-            ORM.Update({ active: true }),
-        ]);
-    })
-    .then(() => {
-        return 'Retailer telah diaktivasi.';
-    });
-}
-
-function Deactivate(sellerID: string, buyerID: string) {
-    return FetchRelations([
-        ORM.FilterBy({ buyerID, sellerID }),
-    ])
-    .then(relations => {
-        if (relations.length === 0) {
-            return 'Retailer tidak ditemukan';
-        }
-
-        return FetchRelations([
-            ORM.FilterBy({ id: relations[0].id }),
-            ORM.Update({ active: false }),
-        ])
-        .then(() => {
-            return 'Retailer is dinonaktifkan.';
-        });
-    });
-}
-
-function ChangeTier(sellerID: string, buyerID: number, tier: RelationsTier) {
-    return FetchRelations([
-        ORM.FilterBy({ buyerID, sellerID }),
-    ])
-    .then(relations => {
-        if (relations.length === 0) throw new Error('Tidak ada relasi antara ws dan retailer');
-        return FetchRelations([
-            ORM.FilterBy({ id: relations[0].id }),
-            ORM.Update({ type: tier }),
-        ]);
-    });
-}
-
 export default {
-    Activate,
-    ChangeTier,
     CreateBuyer,
-    Deactivate,
     ListByPhone,
     ListForSeller,
 };

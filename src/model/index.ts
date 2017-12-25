@@ -15,6 +15,7 @@ export enum Table {
     deliveryOptions = 'delivery_options',
     itemPrices = 'item_prices',
     katalog = 'katalog',
+    katalogWs = 'katalog_ws',
     orderItems = 'order_items',
     orders = 'orders',
     passwordTokens = 'password_token',
@@ -26,162 +27,152 @@ export type BuilderFn = (builder: knex.QueryBuilder) => knex.QueryBuilder;
 type knexValue = boolean | Date | null | string | number;
 
 interface QueryParams {
-    columns?: string[];
+    columns?: Array<string | knex.Raw>;
+    count?: string;
     limit?: number;
     offset?: number;
     sortBy?: string;
     sortOrder?: string;
 }
 
-function BuilderBase(baseQuery: knex.QueryBuilder, builders: BuilderFn[]): knex.QueryBuilder {
-    return builders.reduce((accum, builder) => builder(accum), baseQuery);
+export function Extender(query: knex.QueryBuilder, builders: BuilderFn[]): knex.QueryBuilder {
+    return builders.reduce((accum, builder) => builder(accum), query.clone());
 }
 
-function BuilderQuery(baseQuery: knex.QueryBuilder) {
-    return (builders: BuilderFn[], params: QueryParams = {}): knex.QueryBuilder => {
-        const paramsBuilder = [];
-        const { columns, limit, offset, sortBy, sortOrder } = params;
-        if (limit) paramsBuilder.push(Limit(limit));
-        if (offset) paramsBuilder.push(Offset(offset));
-        if (sortBy && sortOrder) paramsBuilder.push(Sort(sortBy, sortOrder));
-        if (columns) paramsBuilder.push(Select(...columns));
+export function Fetch<T>(query: knex.QueryBuilder, params: QueryParams = {}): Bluebird<T[]> {
+    const paramsBuilder = [];
+    const { columns, limit, offset, sortBy, sortOrder } = params;
+    if (limit) paramsBuilder.push(Limit(limit));
+    if (offset) paramsBuilder.push(Offset(offset));
+    if (sortBy && sortOrder) paramsBuilder.push(OrderBy(sortBy, sortOrder));
+    if (columns) paramsBuilder.push(Select(...columns));
 
-        return BuilderBase(baseQuery, builders.concat(paramsBuilder));
-    };
+    return Extender(query.clone(), paramsBuilder).then(result => result);
 }
 
-function BuilderCount(baseQuery: knex.QueryBuilder) {
-    return (builders: BuilderFn[]): knex.QueryBuilder => {
-        return BuilderBase(baseQuery, builders).count();
-    };
-}
-
-function BuilderJoin(
-    firstTable: Table,
-    secondTable: Table,
-    firstID: string,
-    secondID: string,
-) {
-    return (firstBuilders: BuilderFn[], secondBuilders: BuilderFn[] = []): knex.QueryBuilder => {
-        const secondTableQuery = BuilderQuery(pg(secondTable))(secondBuilders);
-        const secondTableJoin = pg(firstTable)
-            .join(pg.raw('(' + secondTableQuery + ') as ' + secondTable), firstID, secondID);
-
-        return BuilderBase(secondTableJoin, firstBuilders);
-    };
-}
-
-function BuilderLeftJoin(
-    firstTable: Table,
-    secondTable: Table,
-    firstID: string,
-    secondID: string,
-) {
-    return (firstBuilders: BuilderFn[], secondBuilders: BuilderFn[] = []): knex.QueryBuilder => {
-        const secondTableQuery = BuilderQuery(pg(secondTable))(secondBuilders);
-        const secondTableJoin = pg(firstTable)
-            .leftJoin(pg.raw('(' + secondTableQuery + ') as ' + secondTable), firstID, secondID);
-
-        return BuilderBase(secondTableJoin, firstBuilders);
-    };
-}
-
-function Count(name: Table) {
-    return (builders: BuilderFn[]): Bluebird<number> => {
-        return BuilderCount(pg(name))(builders)
-        .then((result: Array<{count: number}>) => result[0].count);
-    };
-}
-
-function Fetch<T>(name: Table) {
+export function FetchFactory<T>(query: knex.QueryBuilder) {
     return (builders: BuilderFn[], params: QueryParams = {}): Bluebird<T[]> => {
-        return BuilderQuery(pg(name))(builders, params)
-        .then((result: T[]) => result);
+        return Fetch<T>(Extender(query.clone(), builders), params);
     };
 }
 
-function FetchAndCount<T>(name: Table) {
-    return (builders: BuilderFn[], params: QueryParams): Bluebird<{ count: number, list: T[]}> => {
-        return Bluebird.all([
-            Fetch<T>(name)(builders, params),
-            Count(name)(builders),
-        ])
-        .then(([list, count]) => {
-            return { count, list };
-        });
+export function Count(query: knex.QueryBuilder, column?: string, length: boolean = false): Bluebird<number> {
+    return query.clone().count(column).then(result => (length ? result.length : result[0].count));
+}
+
+export function CountFactory(query: knex.QueryBuilder) {
+    return (builders: BuilderFn[], column?: string): Bluebird<number> => {
+        return Count(Extender(query.clone(), builders));
     };
 }
 
-function FetchJoin<T, K>(
-    firstTable: Table,
-    secondTable: Table,
+export function FetchAndCount<T>(
+    query: knex.QueryBuilder,
+    params: QueryParams = {},
+): Bluebird<{ result: T[], count: number }> {
+    return Bluebird.all([
+        Fetch<T>(query, params),
+        Count(query, params.count),
+    ])
+    .then(([result, count]) => {
+        return { result, count };
+    });
+}
+
+export function Join(
+    firstQuery: knex.QueryBuilder,
+    secondQuery: knex.QueryBuilder,
     firstID: string,
     secondID: string,
-) {
-    return (firstBuilders: BuilderFn[], secondBuilders: BuilderFn[] = [], params: QueryParams = {})
-    : Bluebird<Array<(T & K)>> => {
-        const baseQuery = BuilderJoin(firstTable, secondTable, firstID, secondID)(firstBuilders, secondBuilders);
-        return BuilderQuery(baseQuery)([], params)
-        .then(result => result);
-    };
+    alias: string,
+): knex.QueryBuilder {
+    return firstQuery.join(pg.raw('(' + secondQuery + ') as ' + alias), firstID, secondID);
 }
 
-function FetchLeftJoin<T, K>(
-    firstTable: Table,
-    secondTable: Table,
+export function LeftJoin(
+    firstQuery: knex.QueryBuilder,
+    secondQuery: knex.QueryBuilder,
     firstID: string,
     secondID: string,
-) {
-    return (firstBuilders: BuilderFn[], secondBuilders: BuilderFn[] = [], params: QueryParams = {})
-    : Bluebird<Array<(T & K)>> => {
-        const baseQuery = BuilderLeftJoin(firstTable, secondTable, firstID, secondID)(firstBuilders, secondBuilders);
-        return BuilderQuery(baseQuery)([], params)
-        .then(result => result);
-    };
+    alias: string,
+): knex.QueryBuilder {
+    return firstQuery.leftJoin(pg.raw('(' + secondQuery + ') as ' + alias), firstID, secondID);
 }
 
-function FetchJoinAndCount<T, K>(
-    firstTable: Table,
-    secondTable: Table,
+export function JoinFactory(
+    firstQuery: knex.QueryBuilder,
+    secondQuery: knex.QueryBuilder,
     firstID: string,
     secondID: string,
+    alias: string,
 ) {
-    return (firstBuilders: BuilderFn[], secondBuilders: BuilderFn[] = [], params: QueryParams = {})
-    : Bluebird<{ count: number, list: Array<(T & K)> }> => {
-        const baseQuery = BuilderJoin(firstTable, secondTable, firstID, secondID)(firstBuilders, secondBuilders);
-
-        return Bluebird.all([
-            BuilderQuery(baseQuery.clone())([], params).then(result => result),
-            BuilderCount(baseQuery.clone())([]).count(),
-        ])
-        .then(([list, counts]) => {
-            return { count: counts[0].count, list };
-        });
+    return (firstBuilders: BuilderFn[], secondBuilders: BuilderFn[] = []): knex.QueryBuilder => {
+        return Extender(
+            Join(firstQuery.clone(), Extender(secondQuery.clone(), secondBuilders), firstID, secondID, alias),
+            firstBuilders,
+        );
     };
 }
 
-function FilterBy(filters: { [x: string]: knexValue } | (() => any)): BuilderFn {
-    return builder => builder.where(filters);
+export function LeftJoinFactory(
+    firstQuery: knex.QueryBuilder,
+    secondQuery: knex.QueryBuilder,
+    firstID: string,
+    secondID: string,
+    alias: string,
+) {
+    return (firstBuilders: BuilderFn[], secondBuilders: BuilderFn[] = []): knex.QueryBuilder => {
+        return Extender(
+            LeftJoin(firstQuery.clone(), Extender(secondQuery.clone(), secondBuilders), firstID, secondID, alias),
+            firstBuilders,
+        );
+    };
 }
 
-function FilterIn(key: string, values: Array<string | number>): BuilderFn {
-    return builder => builder.whereIn(key, values);
+export function FetchJoin<T>(
+    firstQuery: knex.QueryBuilder,
+    secondQuery: knex.QueryBuilder,
+    firstID: string,
+    secondID: string,
+    alias: string,
+) {
+    return (firstBuilders: BuilderFn[], secondBuilders: BuilderFn[] = [], params: QueryParams = {}): Bluebird<T[]> => {
+        return Fetch<T>(
+            JoinFactory(firstQuery, secondQuery, firstID, secondID, alias)(firstBuilders, secondBuilders),
+            params,
+        );
+    };
 }
 
-function FilterNotNull(key: string): BuilderFn {
-    return builder => builder.whereNotNull(key);
+export function FetchLeftJoin<T>(
+    firstQuery: knex.QueryBuilder,
+    secondQuery: knex.QueryBuilder,
+    firstID: string,
+    secondID: string,
+    alias: string,
+) {
+    return (firstBuilders: BuilderFn[], secondBuilders: BuilderFn[] = [], params: QueryParams = {}): Bluebird<T[]> => {
+        return Fetch<T>(
+            LeftJoinFactory(firstQuery, secondQuery, firstID, secondID, alias)(firstBuilders, secondBuilders),
+            params,
+        );
+    };
 }
 
-function FilterNull(key: string): BuilderFn {
-    return builder => builder.whereNull(key);
+function From(key: string): BuilderFn {
+    return builder => builder.from(key);
 }
 
-function Insert(obj: any, returning?: string[]): BuilderFn {
+function GroupBy(keys: string[]): BuilderFn {
+    return builder => builder.groupBy(...keys);
+}
+
+function Having(firstKey: knex.Raw, keys: Array<string | number>): BuilderFn {
+    return builder => builder.having(firstKey, ...keys);
+}
+
+function Insert(obj: { [x: string]: knexValue } | Array<{[x: string]: knexValue}>, returning?: string[]): BuilderFn {
     return builder => builder.insert(obj, returning);
-}
-
-function Join(tableName: string, firstID: string, secondID: string): BuilderFn {
-    return builder => builder.innerJoin(tableName, firstID, secondID);
 }
 
 function Limit(n: number): BuilderFn {
@@ -192,11 +183,11 @@ function Offset(n: number): BuilderFn {
     return builder => builder.offset(n);
 }
 
-function Sort(sortAttr: string, sortDir: string): BuilderFn {
-    return builder => builder.orderBy(sortAttr, sortDir);
+function OrderBy(column: string, dir: string): BuilderFn {
+    return builder => builder.orderBy(column, dir);
 }
 
-function Select(...keys: string[]): BuilderFn {
+function Select(...keys: Array<string | knex.Raw>): BuilderFn {
     return builder => builder.select(...keys);
 }
 
@@ -204,9 +195,26 @@ function Update(updateInfo: { [x: string]: knexValue }, returning?: string[]): B
     return builder => builder.update(updateInfo, returning);
 }
 
+function Where(filters: { [x: string]: knexValue } | (() => any)): BuilderFn {
+    return builder => builder.where(filters);
+}
+
+function WhereIn(key: string, values: Array<string | number>): BuilderFn {
+    return builder => builder.whereIn(key, values);
+}
+
+function WhereNotNull(key: string): BuilderFn {
+    return builder => builder.whereNotNull(key);
+}
+
+function WhereNull(key: string): BuilderFn {
+    return builder => builder.whereNull(key);
+}
+
 export const ORM = {
-    Count, Fetch, FetchAndCount, FetchLeftJoin, FetchJoin, FetchJoinAndCount, FilterBy, FilterIn, FilterNotNull,
-    FilterNull, Insert, Join, Limit, Offset, Select, Update,
+    Count, Fetch, FetchAndCount, From, Join, LeftJoin,
+    GroupBy, Having, Insert, Limit, Offset, OrderBy, Select, Update,
+    Where, WhereIn, WhereNotNull, WhereNull,
 };
 
 export function Selector(names: string[]) {

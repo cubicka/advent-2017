@@ -3,8 +3,9 @@ import * as cookieParser from 'cookie-parser';
 import * as express from 'express';
 import * as expressValidator from 'express-validator';
 import * as helmet from 'helmet';
-// import * as  from 'parsetrace'
+
 import * as config from '../config.json';
+import { SimpleDate } from '../util/date';
 
 import {AllowAJAX, ResponseAPI} from './helper';
 import routes from './route-reify';
@@ -55,7 +56,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
     if (res.statusCode === 200) res.status(400);
 
     // tslint:disable-next-line:no-console
-    console.log('error:', (new Date()).getTime(), req.path, err.message);
+    console.log('error:', `${SimpleDate(new Date())}`, req.path, err.message);
     // tslint:disable-next-line:no-console
     console.log('error header', req.headers);
     // tslint:disable-next-line:no-console
@@ -66,6 +67,8 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
     console.log('error params', req.params);
     // tslint:disable-next-line:no-console
     console.log('error stack', err.stack);
+    // tslint:disable-next-line:no-console
+    console.log();
 
     res.send(err.message);
 });

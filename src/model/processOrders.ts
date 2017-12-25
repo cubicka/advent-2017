@@ -1,8 +1,8 @@
-import { ORM, Table } from './index';
+import pg, { FetchFactory, ORM, Table } from './index';
 import { CreateOrderAdditionals, CreateOrderItems } from './orderItems';
 import Orders, { Order } from './orders';
 
-const FetchOrders = ORM.Fetch<Order>(Table.orders);
+const FetchOrders = FetchFactory<Order>(pg(Table.orders));
 
 interface ProcessOrderParams {
     orderID: string;
@@ -12,7 +12,7 @@ interface ProcessOrderParams {
 
 function Accept(sellerID: string, { orderID, items, additionals }: ProcessOrderParams, notes = '') {
     return FetchOrders([
-        ORM.FilterBy({ sellerID, id: orderID }),
+        ORM.Where({ sellerID, id: orderID }),
     ])
     .then(orders => {
         if (orders.length === 0) throw new Error('Order tidak ditemukan');
@@ -24,7 +24,7 @@ function Accept(sellerID: string, { orderID, items, additionals }: ProcessOrderP
 
         const now = new Date();
         return FetchOrders([
-            ORM.FilterBy({ id: orderID }),
+            ORM.Where({ id: orderID }),
             ORM.Update({accepted: now, notes}),
         ])
         .then(() => (CreateOrderItems(orderID, items, now)))
@@ -38,7 +38,7 @@ function Accept(sellerID: string, { orderID, items, additionals }: ProcessOrderP
 
 function Draft(sellerID: string, {orderID, items, additionals}: ProcessOrderParams) {
     return FetchOrders([
-        ORM.FilterBy({ sellerID, id: orderID }),
+        ORM.Where({ sellerID, id: orderID }),
     ])
     .then(orders => {
         if (orders.length === 0) throw new Error('Order tidak ditemukan');
@@ -60,7 +60,7 @@ function Draft(sellerID: string, {orderID, items, additionals}: ProcessOrderPara
 
 function Assign(sellerID: string, orderID: string) {
     return FetchOrders([
-        ORM.FilterBy({ sellerID, id: orderID }),
+        ORM.Where({ sellerID, id: orderID }),
     ])
     .then(orders => {
         if (orders.length === 0) throw new Error('Order tidak ditemukan');
@@ -71,7 +71,7 @@ function Assign(sellerID: string, orderID: string) {
         }
 
         return FetchOrders([
-            ORM.FilterBy({ id: orderID }),
+            ORM.Where({ id: orderID }),
             ORM.Update({assigned: new Date()}),
         ])
         .then(() => Orders.Details(sellerID, orderID));
@@ -80,7 +80,7 @@ function Assign(sellerID: string, orderID: string) {
 
 function Deliver(sellerID: string, orderID: string) {
     return FetchOrders([
-        ORM.FilterBy({ id: orderID, sellerID }),
+        ORM.Where({ id: orderID, sellerID }),
     ])
     .then(orders  => {
         if (orders.length === 0) throw new Error('Pesanan tidak ditemukan.');
@@ -92,7 +92,7 @@ function Deliver(sellerID: string, orderID: string) {
 
         const now = new Date();
         return FetchOrders([
-            ORM.FilterBy({ id: orderID, sellerID }),
+            ORM.Where({ id: orderID, sellerID }),
             ORM.Update({
                 assigned: now,
                 delivered: now,
@@ -105,7 +105,7 @@ function Deliver(sellerID: string, orderID: string) {
 
 function Cancel(sellerID: string, orderID: string, notes: string = '') {
     return FetchOrders([
-        ORM.FilterBy({ id: orderID, sellerID }),
+        ORM.Where({ id: orderID, sellerID }),
     ])
     .then(orders  => {
         if (orders.length === 0) throw new Error('Pesanan tidak ditemukan.');
@@ -114,7 +114,7 @@ function Cancel(sellerID: string, orderID: string, notes: string = '') {
         if (order.delivered) throw new Error('Pesanan tidak dapat dibatalkan.');
 
         return FetchOrders([
-            ORM.FilterBy({ id: orderID, sellerID }),
+            ORM.Where({ id: orderID, sellerID }),
             ORM.Update({ cancelled: new Date(), cancelledby: 'seller', notes }),
         ]);
     })
