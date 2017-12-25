@@ -34,9 +34,6 @@ function CreateToken(req: express.Request, res: express.Response, next: express.
     return Auth.CreateToken(userID, req.body.udid)
     .then(token => {
         res.send({token});
-    })
-    .then(token => {
-        res.send({ token });
     });
 }
 

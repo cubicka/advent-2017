@@ -8,6 +8,11 @@ declare module "express-session/session/memory" {
     export = value;
 }
 
+declare module "mime" {
+    const value: any;
+    export default value;
+}
+
 declare module "nexmo" {
     const value: any;
     export = value;

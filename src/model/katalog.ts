@@ -248,3 +248,17 @@ export function WSUpdate(sellerID: number, katalogWsID: string, updateData: Kata
         return [];
     });
 }
+
+export function WSImageUpdate(sellerID: number, itemID: number, image: string) {
+    return FetchKatalogWs([
+        ORM.Where({ id: itemID, sellerID }),
+        ORM.Update({ image }),
+    ]);
+}
+
+export function WSDelete(sellerID: number, itemID: number) {
+    return FetchKatalogWs([
+        ORM.Where({ id: itemID, sellerID }),
+        ORM.Update({ sellerID: -1 * sellerID }),
+    ]);
+}

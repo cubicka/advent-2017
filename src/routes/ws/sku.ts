@@ -1,21 +1,13 @@
 import * as Bluebird from 'bluebird';
 import express from 'express';
 
-import { KatalogPriceListed, KatalogPriceUnlisted, WSUpdate } from '../../model/katalog';
+import { KatalogPriceListed, KatalogPriceUnlisted, WSDelete, WSImageUpdate, WSUpdate } from '../../model/katalog';
 import Sellers from '../../model/sellers';
 import { CleanQuery } from '../../util/obj';
 import { IsOptional, IsParseNumber, IsString, Middleware } from '../../util/validation';
 
 import { ParseLimitOffset } from '../middleware/helper';
-// import Promise from 'bluebird'
-// import {ParseLimitOffset} from '../../middleware/helper'
-// import {KatalogListed, KatalogNotListed, UpdateBulkPrices, KatalogImageUpdate, KatalogWSNew,
-// KatalogWSUpdate, MarkSync} from '../../../model/ws'
-// import {MergeDeep} from '../../../util/obj'
-// import {IsOptional, IsParseDate, IsParseNumber, IsString, Middleware} from '../../../util/validation'
-// import S3Middleware from '../../../util/s3'
-
-// const RuloMapping = require('../../../model/ruloMapping.json')
+import S3Middleware from '../middleware/s3';
 
 function KatalogListed(req: express.Request, res: express.Response, next: express.NextFunction) {
     const {user, params} = req.kulakan;
@@ -90,19 +82,26 @@ function Update(req: express.Request, res: express.Response, next: express.NextF
     });
 }
 
-// function Upload(req, res, next) {
-//     const {user, uploads} = req.kulakan
-//     return KatalogImageUpdate(user.id, parseInt(req.params.id,10), uploads.Location)
-//     .then(() => {
-//         res.send({image: uploads.Location})
-//     })
-//     .catch(err => res.send400(err.message))
-// }
+function Upload(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const {user, uploads} = req.kulakan;
+    return WSImageUpdate(user.id, parseInt(req.params.id, 10), uploads.Location)
+    .then(() => {
+        res.send({image: uploads.Location});
+    });
+}
 
-// function PreUpload(req, res, next) {
-//     req.kulakan.uploadImageKatalog = true
-//     next()
-// }
+function PreUpload(req: express.Request, res: express.Response, next: express.NextFunction) {
+    req.kulakan.uploadImageKatalog = true;
+    next();
+}
+
+function Delete(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const { user } = req.kulakan;
+    return WSDelete(user.id, parseInt(req.params.id, 10))
+    .then(() => {
+        res.send({ status: 'Delete sukses.' });
+    });
+}
 
 export default {
     get: [
@@ -111,7 +110,8 @@ export default {
     ],
     post: [
         ['/create', Middleware(specsForUpdate), Update],
+        ['/:id(\\d+)/delete', Delete],
         ['/:id(\\d+)/update', Middleware(specsForUpdate), Update],
-        // ['/:id(\\d+)/upload-image', PreUpload, ...S3Middleware('image'), Upload],
+        ['/:id(\\d+)/upload-image', PreUpload, ...S3Middleware('image'), Upload],
     ],
 };
