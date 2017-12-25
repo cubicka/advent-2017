@@ -1,4 +1,5 @@
 import * as Bluebird from 'bluebird';
+import * as lodash from 'lodash';
 
 import { Omit } from '../util/type';
 
@@ -149,13 +150,26 @@ function ListForBuyer(buyerID: string, limit?: number, offset?: number) {
     });
 }
 
-function DetailsForBuyer(sellerID: string) {
+function DetailsForBuyer(buyerID: string, sellerID: string) {
     return FetchUsersSellers([
         ORM.Where({ 'users.id': sellerID }),
     ], [
         ORM.Where({ userID: sellerID }),
     ], {
         columns: ['userID', 'name', 'address', 'cityID', 'stateID', 'image', 'phone', 'latitude', 'longitude', 'shop'],
+    })
+    .then(sellers => {
+        return Bluebird.reduce(sellers, (accum, seller) => {
+            return pg('buyer_relations').where({ sellerID, buyerID })
+            .then((relations: any) => {
+                if (relations.length === 0) return 'normal';
+                return relations.type as string;
+            })
+            .then(tier => {
+                accum.push(lodash.assign(seller, { tier }));
+                return accum;
+            });
+        }, [] as Seller[]);
     });
 }
 

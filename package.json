@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "lint": "tslint -p .",
-    "start": "tsc; cp src/config.json dist/config.json; cp -R src/raw dist/raw; node dist/",
+    "build": "tsc; cp src/config.json dist/config.json; cp src/setara-firebase.json dist/setara-firebase.json; cp -R src/raw dist/raw",
+    "start": "npm run build; node dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -18,6 +19,7 @@
     "express": "^4.16.2",
     "express-session": "^1.15.6",
     "express-validator": "^4.3.0",
+    "firebase-admin": "^5.6.0",
     "gm": "^1.23.0",
     "helmet": "^3.9.0",
     "http": "0.0.0",

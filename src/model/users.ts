@@ -122,7 +122,12 @@ function SignOut(id: string) {
     return FetchUsers(builders);
 }
 
+function GetByID(id: string) {
+    return FetchUsers([ ORM.Where({id}) ]);
+}
+
 export default {
+    GetByID,
     GetByToken,
     GetByUsername,
     SetSaltHash,

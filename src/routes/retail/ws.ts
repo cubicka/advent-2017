@@ -18,7 +18,7 @@ function List(req: express.Request, res: express.Response, next: express.NextFun
 }
 
 function Detail(req: express.Request, res: express.Response, next: express.NextFunction) {
-    return Sellers.DetailsForBuyer(req.params.id)
+    return Sellers.DetailsForBuyer(req.kulakan.user.id, req.params.id)
     .then(ws => {
         res.send({ws});
     });
