@@ -35,7 +35,7 @@ export interface OrderItemsList {
 }
 
 const FetchOrderAdditionals = FetchFactory<OrderAdditionals>(pg(Table.additionals));
-const FetchOrderItems = FetchFactory<OrderItems>(pg(Table.orderItems));
+export const FetchOrderItems = FetchFactory<OrderItems>(pg(Table.orderItems));
 
 const JoinKatalogOrderItems = JoinFactory(
     pg(Table.katalog), pg(Table.orderItems),

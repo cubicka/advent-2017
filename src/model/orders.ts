@@ -1,7 +1,8 @@
 import * as Bluebird from 'bluebird';
 
 import { Buyer } from './buyers';
-import pg, { BuilderFn, CountFactory, Extender, FetchAndCount, Join, ORM, Selector, Table  } from './index';
+import pg, { BuilderFn, CountFactory, Extender, FetchAndCount, FetchFactory, Join, ORM, Selector,
+    Table } from './index';
 import { AddItems, OrderItemsList } from './orderItems';
 import { Seller } from './sellers';
 
@@ -9,7 +10,7 @@ export interface Order {
     accepted?: string;
     address?: string;
     assigned?: string;
-    buyerID: string;
+    buyerID: number;
     cancelled?: string;
     cancelledby?: string;
     created: string;
@@ -41,8 +42,8 @@ enum OrderStatus {
 }
 
 interface OrderParams {
-    limit: number;
-    offset: number;
+    limit?: number;
+    offset?: number;
     status?: OrderStatus;
 }
 
@@ -51,14 +52,15 @@ interface DetailedOrderList {
     orders: DetailedOrder[];
 }
 
-const CountOrder = CountFactory(pg(Table.orders));
+export const FetchOrders = FetchFactory<Order>(pg(Table.orders));
+export const CountOrder = CountFactory(pg(Table.orders));
 
 export function FetchOrderWithCount(
     orderBuilders: BuilderFn[],
     sellerBuilders: BuilderFn[] = [],
     buyerBuilders: BuilderFn[] = [],
-    limit: number,
-    offset: number,
+    limit?: number,
+    offset?: number,
 ): Bluebird<DetailedOrderList> {
     const selector = Selector(['details', 'seller', 'buyer']);
 
@@ -121,7 +123,7 @@ function OrderStatusFilter(status: OrderStatus): BuilderFn[] {
     }
 }
 
-function List(
+export function List(
     orderBuilders: BuilderFn[],
     sellerBuilders: BuilderFn[],
     buyerBuilders: BuilderFn[],

@@ -11,13 +11,36 @@
 
 import express from 'express';
 
+import Dashboard from '../../model/dashboard';
 import Sellers from '../../model/sellers';
+import { IsParseNumber, Middleware } from '../../util/validation';
 
 function UserDetail(req: express.Request, res: express.Response, next: express.NextFunction) {
     const user = req.kulakan.user;
     return Sellers.Details(user.id)
     .then(users => {
         res.send({details: users[0]});
+    });
+}
+
+const dashboardSpecs = {
+    query: {
+        startDate: IsParseNumber,
+        endDate: IsParseNumber,
+    },
+};
+
+function DashboardPipe(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const user = req.kulakan.user;
+    const {startDate, endDate} = req.query;
+
+    return Dashboard.Dashboard(
+        user.id,
+        new Date(parseInt(startDate, 10) * 1000),
+        new Date(parseInt(endDate, 10) * 1000),
+    )
+    .then(result => {
+        res.send(result);
     });
 }
 
@@ -139,23 +162,6 @@ function UserDetail(req: express.Request, res: express.Response, next: express.N
 //     })
 // }
 
-// const dashboardSpecs = {
-//     query: {
-//         startDate: IsParseNumber,
-//         endDate: IsParseNumber,
-//     }
-// }
-
-// function DashboardPipe(req, res, next) {
-//     const user = req.kulakan.user
-//     const {startDate, endDate} = req.query
-
-//     return Dashboard(user.id, new Date(startDate*1000), new Date(endDate*1000))
-//     .then((result) => {
-//         res.send(result)
-//     })
-// }
-
 // function ReportPipe(req, res, next) {
 //     const user = req.kulakan.user
 //     const {startDate, endDate} = req.query
@@ -196,7 +202,7 @@ function UserDetail(req: express.Request, res: express.Response, next: express.N
 export default {
     get: [
         ['/', UserDetail],
-        // ['/dashboard', Middleware(dashboardSpecs), DashboardPipe],
+        ['/dashboard', Middleware(dashboardSpecs), DashboardPipe],
         // ['/dashboard/report', Middleware(dashboardSpecs), ReportPipe],
         // ['/buyer-reports', Middleware(dashboardSpecs), BuyersReport],
         // ['/buyer-reports/:id(\\d+)', Middleware(dashboardSpecs), BuyerReportDetails],

@@ -24,9 +24,10 @@ export enum Table {
 }
 
 export type BuilderFn = (builder: knex.QueryBuilder) => knex.QueryBuilder;
+export type QueryBuilder = knex.QueryBuilder;
 type knexValue = boolean | Date | null | string | number;
 
-interface QueryParams {
+export interface QueryParams {
     columns?: Array<string | knex.Raw>;
     count?: string;
     limit?: number;
@@ -199,8 +200,16 @@ function Where(filters: { [x: string]: knexValue } | (() => any)): BuilderFn {
     return builder => builder.where(filters);
 }
 
+function WhereA(key: string, ...params: Array<string | number | Date>): BuilderFn {
+    return builder => builder.where(key, ...params);
+}
+
 function WhereIn(key: string, values: Array<string | number>): BuilderFn {
     return builder => builder.whereIn(key, values);
+}
+
+function WhereNot(key: string, value: string | number): BuilderFn {
+    return builder => builder.whereNot(key, value);
 }
 
 function WhereNotNull(key: string): BuilderFn {
@@ -214,7 +223,7 @@ function WhereNull(key: string): BuilderFn {
 export const ORM = {
     Count, Fetch, FetchAndCount, From, Join, LeftJoin,
     GroupBy, Having, Insert, Limit, Offset, OrderBy, Select, Update,
-    Where, WhereIn, WhereNotNull, WhereNull,
+    Where, WhereA, WhereIn, WhereNot, WhereNotNull, WhereNull,
 };
 
 export function Selector(names: string[]) {

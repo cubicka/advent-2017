@@ -2,7 +2,7 @@ import * as Bluebird from 'bluebird';
 import * as lodash from 'lodash';
 
 import pg, { BuilderFn, Count, Extender, Fetch,
-    FetchFactory, LeftJoin, LeftJoinFactory, ORM, Table } from './index';
+    FetchFactory, FetchLeftJoin, LeftJoin, LeftJoinFactory, ORM, QueryParams, Table } from './index';
 import { FetchItemPrices, UpdatePrices } from './itemPrices';
 
 export interface Katalog {
@@ -42,6 +42,50 @@ const FetchKatalogWs = FetchFactory<KatalogWS>(pg(Table.katalogWs));
 const JoinKatalogWS = LeftJoinFactory(pg(Table.katalog), pg(Table.katalogWs),
     'katalog.id', 'katalog_ws.katalogID', 'katalog_ws');
 
+function CleanKatalogPrice(katalogs: KatalogPrice[]) {
+    return katalogs.map(katalog => {
+        const item = lodash.assign(katalog, {
+            name: katalog.wsName || katalog.katalogName,
+            category: katalog.wsCategory || katalog.katalogCategory,
+            image: katalog.wsImage || katalog.katalogImage,
+            description: katalog.wsDescription || katalog.katalogDescription,
+        });
+
+        delete item.wsCategory;
+        delete item.wsDescription;
+        delete item.wsImage;
+        delete item.wsName;
+
+        delete item.katalogCategory;
+        delete item.katalogDescription;
+        delete item.katalogImage;
+        delete item.katalogName;
+
+        return item;
+    });
+}
+
+export function FetchJoinKatalogWs(
+    katalogWsBuilders: BuilderFn[] = [],
+    katalogBuilders: BuilderFn[] = [],
+    params: QueryParams = {},
+) {
+    return FetchLeftJoin<KatalogPrice>(pg(Table.katalog), pg(Table.katalogWs),
+        'katalog.id', 'katalog_ws.katalogID', 'katalog_ws')
+        (katalogWsBuilders, katalogBuilders, {
+            ...params,
+            columns: [
+                pg.raw('coalesce(priority, 0) as priority'), 'principalID', 'sku',
+                'katalog_ws.id as itemID', 'katalog.id as katalogID',
+                'katalog.category as katalogCategory', 'katalog_ws.category as wsCategory',
+                'katalog_ws.description as wsDescription', 'katalog.description as katalogDescription',
+                'katalog.image as katalogImage', 'katalog_ws.image as wsImage',
+                'katalog.name as katalogName', 'katalog_ws.name as wsName',
+            ],
+        })
+    .then(CleanKatalogPrice);
+}
+
 function QueryKatalog(katalogWsBuilders: BuilderFn[], katalogBuilders: BuilderFn[], pricesBuilders: BuilderFn[]) {
     const katalogQuery = Extender(pg(Table.katalog), katalogBuilders);
     const priceQuery = Extender(pg(Table.itemPrices), pricesBuilders);
@@ -54,6 +98,7 @@ function QueryKatalog(katalogWsBuilders: BuilderFn[], katalogBuilders: BuilderFn
 }
 
 interface KatalogPrice {
+    id: number;
     itemID: number;
     katalogCategory: string;
     katalogDescription: string;
@@ -117,12 +162,13 @@ export function KatalogPriceListed(
             Extender(query, [ORM.OrderBy('priority', 'desc'), ORM.OrderBy('katalog_ws.id', 'asc') ]),
             {
                 columns: [
-                    'katalog_ws.id as itemID', 'principalID', 'sku', 'katalog.name as katalogName',
-                    'katalog_ws.name as wsName', 'katalog.category as katalogCategory',
-                    'katalog_ws.category as wsCategory', 'katalog.image as katalogImage',
-                    'katalog_ws.image as wsImage', pg.raw('coalesce(priority, 0) as priority'),
+                    pg.raw('coalesce(priority, 0) as priority'), 'principalID', 'sku',
+                    'katalog_ws.id as itemID', 'katalog.id as katalogID',
+                    'katalog.category as katalogCategory', 'katalog_ws.category as wsCategory',
                     'katalog_ws.description as wsDescription', 'katalog.description as katalogDescription',
-                ],
+                    'katalog.image as katalogImage', 'katalog_ws.image as wsImage',
+                    'katalog.name as katalogName', 'katalog_ws.name as wsName',
+                    ],
                 limit, offset,
             },
         ),
