@@ -163,7 +163,7 @@ function DetailsForBuyer(buyerID: string, sellerID: string) {
             return pg('buyer_relations').where({ sellerID, buyerID })
             .then((relations: any) => {
                 if (relations.length === 0) return 'normal';
-                return relations.type as string;
+                return relations[0].type as string;
             })
             .then(tier => {
                 accum.push(lodash.assign(seller, { tier }));
