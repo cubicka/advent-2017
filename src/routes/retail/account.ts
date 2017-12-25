@@ -1,13 +1,3 @@
-// import lodash from 'lodash'
-// import {ParseLimitOffset} from '../middleware/helper'
-// import Users from '../../model/users'
-// import S3Middleware from '../../util/s3'
-// import fetch from 'node-fetch'
-// import Auth from '../../auth'
-// import {IsParseNumber, IsString, Middleware} from '../../util/validation'
-// import {SMS} from '../../util/s3'
-// import {Haha} from '../../util/s3'
-// import {Buyer as WS} from '../../../model/ws'
 import express from 'express';
 
 import Buyers from '../../model/buyers';
