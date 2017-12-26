@@ -7,7 +7,7 @@ import { Omit } from '../util/type';
 
 import { Relations } from './buyerRelations';
 import DeliveryOptions from './deliveryOptions';
-import pg, { Fetch, FetchAndCount, FetchFactory, FetchJoin, JoinFactory, ORM, Table } from './index';
+import pg, { Fetch, FetchAndCount, FetchFactory, FetchJoin, JoinFactory, LeftJoinFactory, ORM, Table } from './index';
 import { AddCity } from './states';
 import { CreateUser, FetchUsers, User } from './users';
 
@@ -43,6 +43,9 @@ export const FetchBuyerUsers = FetchJoin<Buyer & User>(
 );
 
 export const JoinBuyerRelations = JoinFactory(
+    pg(Table.buyers), pg(Table.buyersRelations), 'buyer_details.userID', 'buyer_relations.buyerID', 'buyer_relations');
+
+export const LeftJoinBuyerRelations = LeftJoinFactory(
     pg(Table.buyers), pg(Table.buyersRelations), 'buyer_details.userID', 'buyer_relations.buyerID', 'buyer_relations');
 
 function CreateBuyer(buyer: BuyerInsertParams, userData: Omit<User, 'id'>): Bluebird<Buyer> {
@@ -132,7 +135,7 @@ function ListForSeller(sellerID: string, {limit, name = '', offset, sortBy = '',
 
 function ListByPhone(phone: string) {
     return Fetch<Buyer & Relations>(
-        JoinBuyerRelations([ORM.Where({phone: Normalize(phone)})], []),
+        LeftJoinBuyerRelations([ORM.Where({phone: Normalize(phone)})], []),
     )
     .then(buyers => {
         return buyers.map(buyer => {
