@@ -32,5 +32,5 @@ export function ChangeImageUrlDirectly(prevUrl: string) {
 
     const prefix = 'https://rulo-katalog.s3.amazonaws.com';
 
-    return (extension !== 'png') ? `${prefix}/img256/${fileName}` : `${prefix}/${fileName}`;
+    return (extension !== 'png') ? `${prefix}/img128/${fileName}` : `${prefix}/${fileName}`;
 }

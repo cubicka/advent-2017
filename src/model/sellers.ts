@@ -146,6 +146,12 @@ function ListForBuyer(buyerID: string, limit?: number, offset?: number) {
         ], {
             columns: ['userID', 'name', 'address', 'cityID', 'stateID', 'image', 'phone', 'latitude',
             'longitude', 'shop'],
+        })
+        .then(sellers => {
+            return sellers.map(seller => {
+                const relation = relations.find(r => r.sellerID.toString() === seller.userID);
+                return lodash.assign(seller, { tier: relation === undefined ? 'normal' : relation.type });
+            });
         });
     });
 }
