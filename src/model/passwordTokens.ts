@@ -33,7 +33,7 @@ function CreatePassToken(userID: string): Bluebird<string> {
         ORM.Update({ used: true }),
     ]))
     .then(() => FetchPasswordToken([
-        ORM.Where({ token, userID }),
+        ORM.Insert({ used: false, token, userID }),
     ]))
     .then(() => token);
 }
