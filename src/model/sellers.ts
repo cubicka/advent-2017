@@ -120,7 +120,7 @@ function Update(userID: number, seller: any) {
     return FetchSellers([
         ORM.Where({ userID }),
         ORM.Update({
-            ...seller,
+            ...seller, updated_at: new Date(),
         }),
     ]);
 }
@@ -128,7 +128,7 @@ function Update(userID: number, seller: any) {
 function UpdateImage(userID: number, name: string, image: string) {
     return FetchSellers([
         ORM.Where({ userID }),
-        ORM.Update({ [name]: image }),
+        ORM.Update({ [name]: image, updated_at: new Date() }),
     ]);
 }
 

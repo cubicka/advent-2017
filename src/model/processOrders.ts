@@ -25,7 +25,7 @@ function Accept(sellerID: string, { orderID, items, additionals }: ProcessOrderP
         const now = new Date();
         return FetchOrders([
             ORM.Where({ id: orderID }),
-            ORM.Update({accepted: now, notes}),
+            ORM.Update({accepted: now, notes, updated_at: new Date()}),
         ])
         .then(() => (CreateOrderItems(parseInt(orderID, 10), items, now)))
         .then(() => {
@@ -72,7 +72,7 @@ function Assign(sellerID: string, orderID: string) {
 
         return FetchOrders([
             ORM.Where({ id: orderID }),
-            ORM.Update({assigned: new Date()}),
+            ORM.Update({assigned: new Date(), updated_at: new Date()}),
         ])
         .then(() => Orders.DetailsBySeller(sellerID, orderID));
     });
@@ -94,7 +94,7 @@ function DeliverByBuyer(buyerID: string, orderID: string) {
         return FetchOrders([
             ORM.Where({ id: orderID, buyerID }),
             ORM.Update({
-                delivered: now,
+                delivered: now, updated_at: new Date(),
             }),
         ]);
     })
@@ -119,7 +119,7 @@ function DeliverBySeller(sellerID: string, orderID: string) {
             ORM.Update({
                 assigned: now,
                 delivered: now,
-                pickedup: now,
+                pickedup: now, updated_at: new Date(),
             }),
         ]);
     })
@@ -138,7 +138,7 @@ function CancelByBuyer(buyerID: string, orderID: string, notes: string = '') {
 
         return FetchOrders([
             ORM.Where({ id: orderID, buyerID }),
-            ORM.Update({ cancelled: new Date(), cancelledby: 'buyer', notes }),
+            ORM.Update({ cancelled: new Date(), cancelledby: 'buyer', notes, updated_at: new Date() }),
         ]);
     })
     .then(() => Orders.DetailsByBuyer(buyerID, orderID));
@@ -156,7 +156,7 @@ function CancelBySeller(sellerID: string, orderID: string, notes: string = '') {
 
         return FetchOrders([
             ORM.Where({ id: orderID, sellerID }),
-            ORM.Update({ cancelled: new Date(), cancelledby: 'seller', notes }),
+            ORM.Update({ cancelled: new Date(), cancelledby: 'seller', notes, updated_at: new Date() }),
         ]);
     })
     .then(() => Orders.DetailsBySeller(sellerID, orderID));
