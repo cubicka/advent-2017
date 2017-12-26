@@ -11,7 +11,7 @@ function List(req: express.Request, res: express.Response, next: express.NextFun
 
     return Orders.ListByBuyer(user.id, { ...params, status: req.query.status })
     .then(orders => {
-        res.send({orders});
+        res.send({orders: orders.orders});
     });
 }
 
