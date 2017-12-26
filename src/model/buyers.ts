@@ -1,10 +1,12 @@
 import * as Bluebird from 'bluebird';
 import knex from 'knex';
+import * as lodash from 'lodash';
 
 import { Normalize } from '../util/phone';
 import { Omit } from '../util/type';
 
 import { Relations } from './buyerRelations';
+import DeliveryOptions from './deliveryOptions';
 import pg, { Fetch, FetchAndCount, FetchFactory, FetchJoin, JoinFactory, ORM, Table } from './index';
 import { AddCity } from './states';
 import { CreateUser, FetchUsers, User } from './users';
@@ -111,10 +113,20 @@ function ListForSeller(sellerID: string, {limit, name = '', offset, sortBy = '',
         limit, offset, sortBy: sortByParam[0], sortOrder: sortOrderParam,
     })
     .then(({ result, count }) => {
-        return {
-            count,
-            retailers: result,
-        };
+        const userIDs = result.map(user => user.userID);
+
+        return DeliveryOptions.GetDeliveryOptionsBulk(userIDs)
+        .then(options => {
+            return result.map((user, idx) => {
+                return lodash.assign(user, {deliveryOptions: options[idx]});
+            });
+        })
+        .then(usersWithOptions => {
+            return {
+                count,
+                retailers: usersWithOptions,
+            };
+        });
     });
 }
 
