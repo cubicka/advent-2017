@@ -21,7 +21,7 @@ export function ChangeImageUrl<T extends {image?: string}>(item: T) {
     }));
 }
 
-export function ChangeImageUrlDirectly(prevUrl: string, size: string = 'img64') {
+export function ChangeImageUrlDirectly(prevUrl: string, size: string = 'img256') {
     if (!prevUrl) return prevUrl;
 
     const splittedUrl = prevUrl.split('/');

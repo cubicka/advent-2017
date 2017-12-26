@@ -41,8 +41,11 @@ function Items(req: express.Request, res: express.Response, next: express.NextFu
     })
     .then(items => {
         res.send({
-            count: items.count,
-            items: items.items.map(item => lodash.assign(item, {image: ChangeImageUrlDirectly(item.image)}))});
+            items: {
+                count: items.count,
+                items: items.items.map(item => lodash.assign(item, {image: ChangeImageUrlDirectly(item.image)})),
+            },
+        });
     });
 }
 
