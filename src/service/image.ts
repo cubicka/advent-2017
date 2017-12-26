@@ -30,7 +30,7 @@ export function ChangeImageUrlDirectly(prevUrl: string, size: string = 'img64') 
     const splittedFileName = fileName.split('.');
     const extension = splittedFileName[splittedFileName.length - 1];
 
-    const prefix = 'https://rulo-katalog.s3.amazonaws.com';
+    const prefix = 'http://rulo-katalog.s3.amazonaws.com';
 
     return (extension !== 'png') ? `${prefix}/${size}/${fileName}` : `${prefix}/${fileName}`;
 }
