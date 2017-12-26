@@ -1,4 +1,5 @@
 import * as Bluebird from 'bluebird';
+import * as lodash from 'lodash';
 
 import { Buyer } from './buyers';
 import pg, { BuilderFn, CountFactory, Extender, FetchAndCount, FetchFactory, Join, ORM, Selector,
@@ -81,7 +82,7 @@ export function FetchOrderWithCount(
     .then(({ count, result }) => {
         return {
             count,
-            orders: result,
+            orders: result.map(order => lodash.assign(order, {driver_assignments: []})),
         };
     });
 }
