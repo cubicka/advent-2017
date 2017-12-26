@@ -3,6 +3,7 @@ import express from 'express';
 
 import { KatalogPriceListed, KatalogPriceUnlisted, WSDelete, WSImageUpdate, WSUpdate } from '../../model/katalog';
 import Sellers from '../../model/sellers';
+import { ChangeImageUrl } from '../../service/image';
 import { CleanQuery } from '../../util/obj';
 import { IsOptional, IsParseNumber, IsString, Middleware } from '../../util/validation';
 
@@ -24,7 +25,10 @@ function KatalogListed(req: express.Request, res: express.Response, next: expres
 
     return KatalogPriceListed(user.id, queryParams)
     .then(result => {
-        res.send(result);
+        res.send({
+            count: result.count,
+            items: result.items.map(item => ChangeImageUrl(item)),
+        });
     });
 }
 
@@ -41,7 +45,10 @@ function KatalogUnlisted(req: express.Request, res: express.Response, next: expr
 
     return KatalogPriceUnlisted(user.id, queryParams)
     .then(result => {
-        res.send(result);
+        res.send({
+            count: result.count,
+            items: result.items.map(item => ChangeImageUrl(item)),
+        });
     });
 }
 

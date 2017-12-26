@@ -21,7 +21,7 @@ export function ChangeImageUrl<T extends {image?: string}>(item: T) {
     }));
 }
 
-export function ChangeImageUrlDirectly(prevUrl: string) {
+export function ChangeImageUrlDirectly(prevUrl: string, size: string = 'img64') {
     if (!prevUrl) return prevUrl;
 
     const splittedUrl = prevUrl.split('/');
@@ -32,5 +32,5 @@ export function ChangeImageUrlDirectly(prevUrl: string) {
 
     const prefix = 'https://rulo-katalog.s3.amazonaws.com';
 
-    return (extension !== 'png') ? `${prefix}/img64/${fileName}` : `${prefix}/${fileName}`;
+    return (extension !== 'png') ? `${prefix}/${size}/${fileName}` : `${prefix}/${fileName}`;
 }
