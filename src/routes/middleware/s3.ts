@@ -2,7 +2,7 @@ import * as Bluebird from 'bluebird';
 import express from 'express';
 import * as fs from 'fs';
 import * as gmBase from 'gm';
-import mime from 'mime';
+import * as mime from 'mime';
 import * as multer from 'multer';
 import tempy from 'tempy';
 

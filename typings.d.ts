@@ -10,7 +10,7 @@ declare module "express-session/session/memory" {
 
 declare module "mime" {
     const value: any;
-    export default value;
+    export = value;
 }
 
 declare module "nexmo" {
