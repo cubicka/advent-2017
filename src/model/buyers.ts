@@ -58,7 +58,7 @@ function CreateBuyer(buyer: BuyerInsertParams, userData: Omit<User, 'id'>): Blue
                 verification: buyer.verification || null,
                 zipcode: buyer.zipcode || null,
                 userID: createdUser.id,
-            }),
+            }, ['id', 'userID']),
         ])
         .then(users => users[0]);
     });
