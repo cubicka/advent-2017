@@ -42,11 +42,16 @@ const JoinKatalogOrderItems = JoinFactory(
     'katalog.id', 'order_items.itemID', 'order_items',
 );
 
+const JoinKatalogWsOrderItems = JoinFactory(
+    pg(Table.katalogWs), pg(Table.orderItems),
+    'katalog_ws.id', 'order_items.itemID', 'order_items',
+);
+
 export function AddItems(orders: DetailedOrder[]) {
     const ids = orders.map(order => (order.details.id));
     return Bluebird.all([
         Fetch<Katalog & OrderItems>(
-            JoinKatalogOrderItems([
+            JoinKatalogWsOrderItems([
                 ORM.Select(
                     'orderID',
                     'itemID',
