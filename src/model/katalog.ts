@@ -1,6 +1,8 @@
 import * as Bluebird from 'bluebird';
 import * as lodash from 'lodash';
 
+import { ChangeImageUrlDirectly } from '../service/image';
+
 import pg, { BuilderFn, Count, Extender, Fetch,
     FetchFactory, FetchLeftJoin, LeftJoin, LeftJoinFactory, ORM, QueryParams, Table } from './index';
 import { FetchItemPrices, UpdatePrices } from './itemPrices';
@@ -187,7 +189,7 @@ export function KatalogPriceListed(
                 const item = lodash.assign(ki, {
                     name: ki.wsName || ki.katalogName,
                     category: ki.wsCategory || ki.katalogCategory,
-                    image: ki.wsImage || ki.katalogImage,
+                    image: ChangeImageUrlDirectly(ki.wsImage || ki.katalogImage),
                     description: ki.wsDescription || ki.katalogDescription,
                     prices: pricesGrouped[ki.itemID],
                 });
