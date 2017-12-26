@@ -70,7 +70,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
     // tslint:disable-next-line:no-console
     console.log();
 
-    res.send(err.message);
+    res.send({ error: err.message });
 });
 
 export default app;

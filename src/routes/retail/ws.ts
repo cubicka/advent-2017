@@ -3,6 +3,7 @@ import * as lodash from 'lodash';
 
 import { KatalogPriceListed, SellerCategory } from '../../model/katalog';
 import Sellers from '../../model/sellers';
+import { ChangeImageUrlDirectly } from '../../service/image';
 import { CleanQuery } from '../../util/obj';
 import { IsString, Middleware } from '../../util/validation';
 
@@ -39,7 +40,9 @@ function Items(req: express.Request, res: express.Response, next: express.NextFu
         name: CleanQuery(name), category: CleanQuery(category), limit, offset,
     })
     .then(items => {
-        res.send({items});
+        res.send({
+            count: items.count,
+            items: items.items.map(item => lodash.assign(item, {image: ChangeImageUrlDirectly(item.image)}))});
     });
 }
 
