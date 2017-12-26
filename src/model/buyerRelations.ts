@@ -31,7 +31,7 @@ export function Activate(sellerID: number, buyerID: number) {
                 ORM.Insert({
                     buyerID, sellerID,
                     active: true,
-                    tier: 'normal',
+                    type: 'normal',
                 }),
             ]);
         }
