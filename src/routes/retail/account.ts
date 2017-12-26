@@ -44,7 +44,7 @@ function NotVerified(req: express.Request, res: express.Response, next: express.
 
 function SignOut(req: express.Request, res: express.Response, next: express.NextFunction) {
     const user = req.kulakan.user;
-    return Users.SignOut(user)
+    return Users.SignOut(user.id)
     .then(() => {
         res.send({status: 'success', success: true, message: 'Successfully signed out.'});
     });
