@@ -36,7 +36,7 @@ function Items(req: express.Request, res: express.Response, next: express.NextFu
     const {name, category} = req.query;
 
     return KatalogPriceListed(req.params.id, {
-        name, category, limit, offset,
+        name: CleanQuery(name), category: CleanQuery(category), limit, offset,
     })
     .then(items => {
         res.send({items});
