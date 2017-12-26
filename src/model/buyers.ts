@@ -171,7 +171,7 @@ function CreateVerification(userID: string) {
 
     return FetchBuyer([
         ORM.Where({userID}),
-        ORM.Update({verification}),
+        ORM.Update({verification, updated_at: new Date()}),
     ])
     .then(() => (verification));
 }
@@ -179,7 +179,7 @@ function CreateVerification(userID: string) {
 function UpdateImage(userID: number, name: string, image: string) {
     return FetchBuyer([
         ORM.Where({ userID }),
-        ORM.Update({ [name]: image }),
+        ORM.Update({ [name]: image, updated_at: new Date() }),
     ]);
 }
 
@@ -193,7 +193,7 @@ function Verify(userID: string, token: string) {
 
         return FetchUsers([
             ORM.Where({id: userID}),
-            ORM.Update({verified: true}),
+            ORM.Update({verified: true, updated_at: new Date()}),
         ])
         .then(() => (true));
     });
@@ -202,7 +202,7 @@ function Verify(userID: string, token: string) {
 function ChangeLatLong(userID: string, {latitude, longitude}: { latitude: string, longitude: string}) {
     return FetchBuyer([
         ORM.Where({ userID }),
-        ORM.Update({ latitude, longitude }, ['id', 'latitude', 'longitude']),
+        ORM.Update({ latitude, longitude, updated_at: new Date() }, ['id', 'latitude', 'longitude']),
     ]);
 }
 
@@ -210,7 +210,7 @@ function Update(userID: number, buyer: any) {
     return FetchBuyer([
         ORM.Where({ userID }),
         ORM.Update({
-            ...buyer,
+            ...buyer, updated_at: new Date(),
         }),
     ]);
 }

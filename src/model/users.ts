@@ -40,7 +40,7 @@ export function CreateUser(user: UserInsertParams): Bluebird<User> {
                     ...user,
                     notificationID: user.notificationID || null,
                     token: user.token || null,
-                    verified: user.verified || null,
+                    verified: user.verified || null, updated_at: new Date(),
                 }, ['id']),
             ]);
         }
@@ -71,7 +71,7 @@ function SetSaltHash(id: number, { salt, hash }: { salt: string, hash: string })
         if (users.length !== 1) throw new Error('User tidak ditemukan');
         return FetchUsers([
             ORM.Where({ id }),
-            ORM.Update({ salt, hash }),
+            ORM.Update({ salt, hash, updated_at: new Date() }),
         ]);
     });
 }
@@ -115,7 +115,7 @@ function SignOut(id: string) {
         ORM.Where({ id }),
         ORM.Update({
             notificationID: null,
-            token: null,
+            token: null, updated_at: new Date(),
         }),
     ];
 

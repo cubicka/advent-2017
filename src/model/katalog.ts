@@ -289,7 +289,7 @@ export function WSUpdate(sellerID: number, katalogWsID: string, updateData: Kata
 
         return FetchKatalogWs([
             ORM.Where({ id: katalogs[0].id }),
-            ORM.Update({...validData}, ['id']),
+            ORM.Update({...validData, updated_at: new Date()}, ['id']),
         ]);
     })
     .then(katalogs => {

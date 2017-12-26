@@ -38,7 +38,7 @@ export function Activate(sellerID: number, buyerID: number) {
 
         return FetchRelations([
             ORM.Where({ id: relations[0].id }),
-            ORM.Update({ active: true }),
+            ORM.Update({ active: true, updated_at: new Date() }),
         ]);
     })
     .then(() => {
@@ -57,7 +57,7 @@ export function Deactivate(sellerID: number, buyerID: number) {
 
         return FetchRelations([
             ORM.Where({ id: relations[0].id }),
-            ORM.Update({ active: false }),
+            ORM.Update({ active: false, updated_at: new Date() }),
         ])
         .then(() => {
             return 'Retailer is dinonaktifkan.';
@@ -73,7 +73,7 @@ export function ChangeTier(sellerID: number, buyerID: number, tier: RelationsTie
         if (relations.length === 0) throw new Error('Tidak ada relasi antara ws dan retailer');
         return FetchRelations([
             ORM.Where({ id: relations[0].id }),
-            ORM.Update({ type: tier }),
+            ORM.Update({ type: tier, updated_at: new Date() }),
         ]);
     });
 }
