@@ -28,7 +28,7 @@ function Detail(req: express.Request, res: express.Response, next: express.NextF
     const user = req.kulakan.user;
     return Orders.DetailsBySeller(user.id, req.params.id)
     .then(order => {
-        res.send({ order });
+        res.send({ order: [order] });
     });
 }
 
