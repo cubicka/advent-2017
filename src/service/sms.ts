@@ -1,4 +1,4 @@
-import Bluebird from 'bluebird';
+import * as Bluebird from 'bluebird';
 import * as Nexmo from 'nexmo';
 
 import * as config from '../config.json';
