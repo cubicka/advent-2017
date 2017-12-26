@@ -8,7 +8,7 @@ import pg, { ORM } from './index';
 import { FetchJoinKatalogWs } from './katalog';
 import { OrderItems } from './orderItems';
 // import { CountOrder, DetailedOrder, List } from './orders';
-import { CountOrder, DetailedOrder, FetchOrders, List } from './orders';
+import { CountOrder, FetchOrders, List } from './orders';
 
 function Dashboard(userID: number, startDate: Date, endDate: Date) {
     return Bluebird.all([
@@ -20,7 +20,10 @@ function Dashboard(userID: number, startDate: Date, endDate: Date) {
     ])
     .then(([created, accepted, delivered, cancelled, latest]) => {
         return {
-            created, accepted, delivered, cancelled,
+            created: [{count: created}],
+            accepted: [{count: accepted}],
+            delivered: [{count: delivered}],
+            cancelled: [{count: cancelled}],
             latest: latest.orders,
             popularItems: latest.items,
             revenue: latest.revenue,
@@ -89,7 +92,7 @@ function LatestOrder(sellerID: number, startDate: Date, endDate: Date) {
 
     if (sellerID !== -1) builders.push(ORM.Where({ sellerID }));
 
-    const latestOrders: DetailedOrder[] = [];
+    const latestOrders: any[] = [];
     const latestItems: OrderItems[] = [];
     let totalRevenue = 0;
 
@@ -101,7 +104,14 @@ function LatestOrder(sellerID: number, startDate: Date, endDate: Date) {
                 return total + item.quantity * item.price;
             }, 0);
 
-            latestOrders.push(lodash.assign(order, {items: order.version[latestVersion.toString()].items, totalPrice}));
+            latestOrders.push(lodash.assign(
+                order.details,
+                {
+                    buyer: order.buyer,
+                    items: order.version[latestVersion.toString()].items,
+                    totalPrice,
+                }),
+            );
             latestItems.push(...order.version[latestVersion.toString()].items);
             totalRevenue += totalPrice;
         });
@@ -137,8 +147,8 @@ function LatestOrder(sellerID: number, startDate: Date, endDate: Date) {
     .then(items => {
         return {
             orders: latestOrders.sort((a, b) => {
-                if (a.details.created < b.details.created) return 1;
-                if (a.details.created > b.details.created) return -1;
+                if (a.created < b.created) return 1;
+                if (a.created > b.created) return -1;
                 return 0;
             }),
             items, revenue: totalRevenue,
