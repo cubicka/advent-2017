@@ -24,7 +24,7 @@ function Dashboard(userID: number, startDate: Date, endDate: Date) {
             accepted: [{count: accepted}],
             delivered: [{count: delivered}],
             cancelled: [{count: cancelled}],
-            latest: latest.orders,
+            latest: latest.orders.slice(0, 5),
             popularItems: latest.items,
             revenue: latest.revenue,
             allOrders: latest.orders,
