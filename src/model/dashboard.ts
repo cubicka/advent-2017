@@ -136,7 +136,7 @@ function LatestOrder(sellerID: number, startDate: Date, endDate: Date) {
         return FetchJoinKatalogWs([ ORM.WhereIn('katalog_ws.id', itemIDs) ])
         .then(katalog => {
             return lodash.sortBy(itemPrices, item => (item.totalPrice * -1)).slice(0, 5).map(item => {
-                const katalogItem = katalog.find(ki => (ki.id === item.itemID)) || {
+                const katalogItem = katalog.find(ki => (ki.itemID === item.itemID)) || {
                     name: '', image: '',
                 };
 
