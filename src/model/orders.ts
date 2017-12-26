@@ -66,7 +66,13 @@ export function FetchOrderWithCount(
 ): Bluebird<DetailedOrderList> {
     const selector = Selector(['details', 'seller', 'buyer']);
 
-    const buyerQuery = Extender(pg(Table.buyers), buyerBuilders);
+    const buyerBuildersSecured = [
+        ...buyerBuilders,
+        ORM.Select('userID', 'name', 'address', 'cityID', 'stateID', 'phone', 'shop', 'zipcode',
+            'latitude', 'longitude'),
+    ];
+
+    const buyerQuery = Extender(pg(Table.buyers), buyerBuildersSecured);
     const sellerQuery = Extender(pg(Table.sellers), sellerBuilders);
 
     const completeQuery = [pg.from('orders as details')]

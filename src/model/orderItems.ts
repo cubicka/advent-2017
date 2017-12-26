@@ -5,7 +5,7 @@ import { ChangeImageUrl } from '../service/image';
 
 import pg, { Fetch, FetchFactory, JoinFactory, ORM, Table } from './index';
 import { FetchItemPricesByIDs, ItemPrices } from './itemPrices';
-import { Katalog } from './katalog';
+import { FetchJoinKatalogWs, Katalog } from './katalog';
 import { DetailedOrder } from './orders';
 
 export interface OrderItems {
@@ -69,24 +69,44 @@ export function AddItems(orders: DetailedOrder[]) {
         ]),
     ])
     .then(([orderItems, additionals]) => {
-        const itemsDict = lodash.groupBy(orderItems.map(ChangeImageUrl), item => (item.orderID));
-        const addDict = lodash.groupBy(additionals, add => (add.orderID));
+        const katalogIDs = orderItems.map(item => item.itemID);
 
-        return orders.map(order => {
-            const items: OrderItems[] = itemsDict[order.details.id] || [];
-            const adds = addDict[order.details.id] || [];
-            const revision = lodash.uniq(items.map(item => (item.revision)).concat(adds.map(add => (add.revision))));
+        return FetchJoinKatalogWs([
+            ORM.WhereIn('katalog_ws.id', katalogIDs),
+        ])
+        .then(katalogs => {
+            const extendedOrderItems = orderItems.map(item => {
+                const katalog = katalogs.find(k => k.itemID === item.itemID);
 
-            const version = revision.reduce((accum: OrderItemsList, revisionID): OrderItemsList => {
-                accum[revisionID] = {
-                    additionals: additionals.filter(item => (item.revision === revisionID)),
-                    items: items.filter(item => (item.revision === revisionID)),
-                };
+                if (katalog === undefined) return item;
+                return lodash.assign(item, {
+                    name: katalog.name,
+                    image: katalog.image,
+                    category: katalog.category,
+                    description: katalog.description,
+                });
+            });
 
-                return accum;
-            }, {} as OrderItemsList);
+            const itemsDict = lodash.groupBy(extendedOrderItems.map(ChangeImageUrl), item => (item.orderID));
+            const addDict = lodash.groupBy(additionals, add => (add.orderID));
 
-            return Object.assign(order, {version});
+            return orders.map(order => {
+                const items: OrderItems[] = itemsDict[order.details.id] || [];
+                const adds = addDict[order.details.id] || [];
+                const revision = lodash.uniq(items
+                    .map(item => (item.revision)).concat(adds.map(add => (add.revision))));
+
+                const version = revision.reduce((accum: OrderItemsList, revisionID): OrderItemsList => {
+                    accum[revisionID] = {
+                        additionals: additionals.filter(item => (item.revision === revisionID)),
+                        items: items.filter(item => (item.revision === revisionID)),
+                    };
+
+                    return accum;
+                }, {} as OrderItemsList);
+
+                return Object.assign(order, {version});
+            });
         });
     });
 }
