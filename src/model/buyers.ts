@@ -212,7 +212,16 @@ function Update(userID: number, buyer: any) {
     ]);
 }
 
+function ChangeDelivery(sellerID: string, buyerID: string, options: string, active: boolean) {
+    return pg('delivery_options').where({userID: buyerID, options})
+    .then(results => {
+        if (results.length === 0) return pg('delivery_options').insert({ userID: buyerID, options, active });
+        return pg('delivery_options').where({userID: buyerID, options}).update({active});
+    });
+}
+
 export default {
+    ChangeDelivery,
     ChangeLatLong,
     CreateBuyer,
     CreateVerification,

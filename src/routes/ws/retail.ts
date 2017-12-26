@@ -3,7 +3,7 @@ import express from 'express';
 import * as Relations from '../../model/buyerRelations';
 import Buyers from '../../model/buyers';
 import { CleanQuery } from '../../util/obj';
-import { IsPhone, Middleware} from '../../util/validation';
+import { IsBool, IsPhone, Middleware} from '../../util/validation';
 
 import { ParseLimitOffset } from '../middleware/helper';
 
@@ -94,6 +94,22 @@ function ChangeTier(req: express.Request, res: express.Response, next: express.N
     });
 }
 
+const changeDeliverySpecs = {
+    body: {
+        active: IsBool,
+        options: (s: string) => (s === 'pickup' || s === 'delivery'),
+    },
+};
+
+function ChangeDelivery(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const user = req.kulakan.user;
+
+    return Buyers.ChangeDelivery(user.id, req.params.id, req.body.options, req.body.active)
+    .then(() => {
+        res.send({ status: 'Sukses ganti tier' });
+    });
+}
+
 export default {
     get: [
         ['/', ParseLimitOffset, List],
@@ -103,5 +119,6 @@ export default {
         ['/activate', Middleware(phoneBodySpecs), Activate],
         ['/deactivate', Middleware(phoneBodySpecs), Deactivate],
         ['/:id(\\d+)/change-tier', Middleware(changeTierSpecs), ChangeTier],
+        ['/:id(\\d+)/change-delivery', Middleware(changeDeliverySpecs), ChangeDelivery],
     ],
 };
