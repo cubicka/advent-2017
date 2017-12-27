@@ -63,7 +63,7 @@ export function UpdatePrices(sellerID: number, itemID: number, prices: Array<{un
         ORM.Update({active: false}, ['id']),
     ])
     .then(prevPrices => {
-        return Bluebird.reduce(prices, (accum, price, idx) => {
+        return Bluebird.reduce(prices.filter(p => p.prices.some(x => x > 0)), (accum, price, idx) => {
             const orderedPrice = NormalizePrice(price.prices);
 
             if (idx < prevPrices.length) {
