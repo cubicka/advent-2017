@@ -1,5 +1,7 @@
 import pg, { FetchFactory, ORM, Table } from './index';
 
+import { NormalizePrice } from './itemPrices';
+
 export enum RelationsTier {
     normal = 'normal',
     bronze = 'bronze',
@@ -40,12 +42,14 @@ interface Price {
 }
 
 export function PickPrice<T extends Price>(item: T, tier: string) {
-    let price = item.price;
+    const normalizedPrice = NormalizePrice([item.price, item.price2 || 0, item.price3 || 0, item.price4 || 0]);
+
+    let price = normalizedPrice[0];
 
     switch (tier) {
-        case 'gold': price = item.price4 || price; break;
-        case 'silver': price = item.price3 || price; break;
-        case 'bronze': price = item.price2 || price; break;
+        case 'gold': price = normalizedPrice[3] || price; break;
+        case 'silver': price = normalizedPrice[2] || price; break;
+        case 'bronze': price = normalizedPrice[1] || price; break;
         default: price = price;
     }
 

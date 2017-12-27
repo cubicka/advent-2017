@@ -36,7 +36,7 @@ export function FetchKatalogItemPricesByIDs(ids: string[]) {
     );
 }
 
-function NormalizePrice(prices: number[]) {
+export function NormalizePrice(prices: number[]) {
     const leftMostNonZeroPrices = prices.reduce((accum, price) => {
         if (accum > 0) return accum;
         return price;
@@ -48,7 +48,13 @@ function NormalizePrice(prices: number[]) {
         return accum.concat([accum[accum.length - 1]]);
     }, [] as number[]);
 
-    return mapZeroPrices.filter(x => (x > 0)).sort((a, b) => (b - a));
+    const sortedPrices = mapZeroPrices.filter(x => (x > 0)).sort((a, b) => (b - a));
+
+    while (sortedPrices.length < 4) {
+        sortedPrices.push(sortedPrices[sortedPrices.length - 1]);
+    }
+
+    return sortedPrices;
 }
 
 export function UpdatePrices(sellerID: number, itemID: number, prices: Array<{unit: string, prices: number[]}> = []) {
