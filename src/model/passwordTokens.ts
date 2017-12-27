@@ -23,7 +23,7 @@ export function GetByToken(token: string): Bluebird<PasswordToken[]> {
 }
 
 function CreatePassToken(userID: string): Bluebird<string> {
-    const token = Array.from({ length: 10 }).map(x => (getRandomIntInclusive(0, 9))).join('');
+    const token = Array.from({ length: 6 }).map(x => (getRandomIntInclusive(0, 9))).join('');
     return FetchPasswordToken([
         ORM.Where({ userID }),
         ORM.Update({ used: true }),
