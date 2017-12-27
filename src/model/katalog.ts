@@ -272,6 +272,8 @@ export function WSUpdate(sellerID: number, katalogWsID: string, updateData: Kata
             return FetchKatalogWs([
                 ORM.Insert({
                     sellerID,
+                    name: updateData.name || '',
+                    category: updateData.category || '',
                 }, ['id']),
             ]);
         }
