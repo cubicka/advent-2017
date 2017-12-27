@@ -112,3 +112,14 @@ export function ChangeTier(sellerID: number, buyerID: number, tier: RelationsTie
         ]);
     });
 }
+
+export function DeleteRelations(sellerID: string, buyerID: string) {
+    return FetchRelations([
+        ORM.Where({ buyerID, sellerID }),
+        ORM.Update({
+            active: false,
+            buyerID: parseInt(buyerID, 10) * -1,
+            sellerID: parseInt(sellerID, 10) * -1,
+        }),
+    ]);
+}

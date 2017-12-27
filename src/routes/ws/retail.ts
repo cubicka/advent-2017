@@ -110,6 +110,15 @@ function ChangeDelivery(req: express.Request, res: express.Response, next: expre
     });
 }
 
+function DeleteRelationsPipe(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const user = req.kulakan.user;
+
+    return Relations.DeleteRelations(user.id, req.params.id)
+    .then(() => {
+        res.send({ status: 'Sukses menghapus.' });
+    });
+}
+
 export default {
     get: [
         ['/', ParseLimitOffset, List],
@@ -120,5 +129,6 @@ export default {
         ['/deactivate', Middleware(phoneBodySpecs), Deactivate],
         ['/:id(\\d+)/change-tier', Middleware(changeTierSpecs), ChangeTier],
         ['/:id(\\d+)/change-delivery', Middleware(changeDeliverySpecs), ChangeDelivery],
+        ['/:id(\\d+)/delete-relation', DeleteRelationsPipe],
     ],
 };
