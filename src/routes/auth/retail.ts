@@ -93,7 +93,7 @@ function ForgotPassword(req: express.Request, res: express.Response, next: expre
 }
 
 function SendSMS(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const { token, user } = req.kulakan;
+    const { token  } = req.kulakan;
     return SMS(req.kulakan.phone, 'kode verifikasi penggantian password: ' + token.toString())
     .then(response => {
         res.send({

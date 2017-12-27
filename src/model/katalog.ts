@@ -224,17 +224,17 @@ export function KatalogPriceUnlisted(sellerID: string, {name, limit, offset, cat
             name.split(' ').filter((s: string) => (s.length > 0)).forEach((s: string) => {
                 this.andWhere(function(this: any) {
                     this.orWhere('katalog.name', 'ilike', `%${s}%`)
-                    .orWhere('katalog_ws.name', 'ilike', `%${s}%`)
-                    .orWhere('katalog.description', 'ilike', `%${s}%`)
-                    .orWhere('katalog_ws.description', 'ilike', `%${s}%`);
+                    // .orWhere('katalog_ws.name', 'ilike', `%${s}%`)
+                    .orWhere('katalog.description', 'ilike', `%${s}%`);
+                    // .orWhere('katalog_ws.description', 'ilike', `%${s}%`);
                 });
             });
         }),
         ORM.Where(function(this: any) {
             if (!category) return;
 
-            this.orWhere('katalog.category', 'ilike', category)
-            .orWhere('katalog_ws.category', 'ilike', category);
+            this.orWhere('katalog.category', 'ilike', category);
+            // .orWhere('katalog_ws.category', 'ilike', category);
         }),
     ];
 
