@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as gmBase from 'gm';
 import * as mime from 'mime';
 import * as multer from 'multer';
-import tempy from 'tempy';
+import * as tempy from 'tempy';
 
 import Upload from '../../service/s3';
 
@@ -64,7 +64,7 @@ function S3Middleware(req: express.Request, res: express.Response, next: express
 
                     return;
                 })
-                .catch(() => {
+                .catch(e => {
                     return;
                 });
             }, {})
