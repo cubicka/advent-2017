@@ -78,6 +78,7 @@ function UserByPhone(req: express.Request, res: express.Response, next: express.
         }
 
         req.kulakan.user = users[0];
+        req.kulakan.phone = phone;
         next();
     });
 }
@@ -93,7 +94,7 @@ function ForgotPassword(req: express.Request, res: express.Response, next: expre
 
 function SendSMS(req: express.Request, res: express.Response, next: express.NextFunction) {
     const { token, user } = req.kulakan;
-    return SMS(user.phone, 'kode verifikasi penggantian password: ' + token.toString())
+    return SMS(req.kulakan.phone, 'kode verifikasi penggantian password: ' + token.toString())
     .then(response => {
         res.send({
             status: 'verification code is sent',

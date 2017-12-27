@@ -40,7 +40,7 @@ function CreateSeller(seller: Omit<Seller, 'userID'>, userData: Omit<User, 'id'>
         return FetchSellers([
             ORM.Insert({
                 ...seller,
-                hasbeenverified: seller.hasbeenverified || null,
+                hasbeenverified: seller.hasbeenverified || false,
                 image: seller.image || null,
                 latitude: seller.latitude || null,
                 longitude: seller.longitude || null,
