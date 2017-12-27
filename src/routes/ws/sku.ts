@@ -27,7 +27,10 @@ function KatalogListed(req: express.Request, res: express.Response, next: expres
     .then(result => {
         res.send({
             count: result.count,
-            items: result.items.map(item => ChangeImageUrl(item)),
+            items: result.items.map(item => ChangeImageUrl(item)).map(item => {
+                item.prices = item.prices || [];
+                return item;
+            }),
         });
     });
 }
