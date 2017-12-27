@@ -21,6 +21,41 @@ export interface Relations extends RelationsInsertParams {
 
 export const FetchRelations = FetchFactory<Relations>(pg(Table.buyersRelations));
 
+export function GetTier(buyerID: string, sellerID: string) {
+    return FetchRelations([
+        ORM.Where({ buyerID, sellerID }),
+    ])
+    .then(relations => {
+        const relation = relations[0];
+        if (relation === undefined) return 'normal';
+        return relation.type || 'normal';
+    });
+}
+
+interface Price {
+    price: number;
+    price2: number;
+    price3: number;
+    price4: number;
+}
+
+export function PickPrice<T extends Price>(item: T, tier: string) {
+    let price = item.price;
+
+    switch (tier) {
+        case 'gold': price = item.price4 || price; break;
+        case 'silver': price = item.price3 || price; break;
+        case 'bronze': price = item.price2 || price; break;
+        default: price = price;
+    }
+
+    delete item.price2;
+    delete item.price3;
+    delete item.price4;
+
+    return item;
+}
+
 export function Activate(sellerID: number, buyerID: number) {
     return FetchRelations([
         ORM.Where({ buyerID, sellerID }),

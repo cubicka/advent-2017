@@ -1,6 +1,8 @@
+import * as Bluebird from 'bluebird';
 import express from 'express';
 import * as lodash from 'lodash';
 
+import { GetTier, PickPrice } from '../../model/buyerRelations';
 import { KatalogPriceListed, SellerCategory } from '../../model/katalog';
 import Sellers from '../../model/sellers';
 import { ChangeImageUrl } from '../../service/image';
@@ -36,14 +38,24 @@ function Items(req: express.Request, res: express.Response, next: express.NextFu
     const {limit, offset} = req.kulakan.params;
     const {name, category} = req.query;
 
-    return KatalogPriceListed(req.params.id, {
-        name: CleanQuery(name), category: CleanQuery(category), limit, offset,
-    })
-    .then(items => {
+    return Bluebird.all([
+        KatalogPriceListed(req.params.id, {
+            name: CleanQuery(name), category: CleanQuery(category), limit, offset,
+            price: 'price',
+        }),
+        GetTier(req.kulakan.user.id, req.params.id),
+    ])
+    .then(([items, tier]) => {
         res.send({
             items: {
                 count: items.count,
-                items: items.items.map(ChangeImageUrl),
+                items: items.items.map(ChangeImageUrl).map(item => {
+                    return lodash.assign(item, {
+                        prices: item.prices !== undefined ?
+                            item.prices.map(prices => PickPrice(prices, tier)) :
+                            [],
+                    });
+                }),
                 // items: items.items.map(item => lodash.assign(item, {image: ChangeImageUrlDirectly(item.image)})),
             },
         });
@@ -54,9 +66,23 @@ function ItemsByIDs(req: express.Request, res: express.Response, next: express.N
     const ids = CleanQuery(req.query.ids).split(',')
         .map(id => (parseInt(id, 10))).filter(x => (!isNaN(x)));
 
-    return  KatalogPriceListed(req.params.id, { ids: ids.map(n => n.toString()) })
-    .then(items => {
-        res.send({items});
+    return Bluebird.all([
+        KatalogPriceListed(req.params.id, { ids: ids.map(n => n.toString()) }),
+        GetTier(req.kulakan.user.id, req.params.id),
+    ])
+    .then(([items, tier]) => {
+        res.send({
+            items: {
+                count: items.count,
+                items: items.items.map(ChangeImageUrl).map(item => {
+                    return lodash.assign(item, {
+                        prices: item.prices !== undefined ?
+                            item.prices.map(prices => PickPrice(prices, tier)) :
+                            [],
+                    });
+                }),
+            },
+        });
     });
 }
 

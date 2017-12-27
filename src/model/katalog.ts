@@ -111,6 +111,10 @@ interface KatalogPrice {
     wsDescription: string;
     wsImage: string;
     wsName: string;
+    price: number;
+    price2: number;
+    price3: number;
+    price4: number;
 }
 
 export function KatalogPriceListed(
@@ -144,8 +148,8 @@ export function KatalogPriceListed(
             .orWhere('katalog_ws.category', 'ilike', category);
         }),
         ...(ids !== undefined && ids.length > 0 ? [ORM.WhereIn('katalog_ws.id', ids)] : []),
-        // ...(priceFilter === 'price' ? [ ORM.WhereNotNull('item_prices.sellerID') ] : []),
-        // ...(priceFilter === 'noPrice' ? [ ORM.WhereNull('item_prices.sellerID') ] : []),
+        ...(priceFilter === 'price' ? [ ORM.WhereNotNull('item_prices.sellerID') ] : []),
+        ...(priceFilter === 'noPrice' ? [ ORM.WhereNull('item_prices.sellerID') ] : []),
         ORM.GroupBy([
             'katalog_ws.id', 'katalog.id', 'principalID', 'sku', 'katalog.name', 'katalog_ws.name',
             'katalog.category', 'katalog_ws.category', 'katalog.image', 'katalog_ws.image',
