@@ -149,7 +149,7 @@ function ListForBuyer(buyerID: string, limit?: number, offset?: number) {
         })
         .then(sellers => {
             return sellers.map(seller => {
-                const relation = relations.find(r => r.sellerID.toString() === seller.userID);
+                const relation = relations.find(r => r.sellerID.toString() === seller.userID.toString());
                 return lodash.assign(seller, { tier: relation === undefined ? 'normal' : relation.type });
             });
         });
