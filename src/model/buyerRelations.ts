@@ -53,6 +53,7 @@ export function PickPrice<T extends Price>(item: T, tier: string) {
         default: price = price;
     }
 
+    item.price = price;
     delete item.price2;
     delete item.price3;
     delete item.price4;
