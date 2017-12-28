@@ -1,3 +1,6 @@
+import * as Bluebird from 'bluebird';
+
+import { GetTier } from './buyerRelations';
 import pg, { FetchFactory, ORM, Table } from './index';
 import { CreateOrderAdditionals, CreateOrderItems } from './orderItems';
 import Orders, { Order } from './orders';
@@ -23,11 +26,14 @@ function Accept(sellerID: string, { orderID, items, additionals }: ProcessOrderP
         }
 
         const now = new Date();
-        return FetchOrders([
-            ORM.Where({ id: orderID }),
-            ORM.Update({accepted: now, notes, updated_at: new Date()}),
+        return Bluebird.all([
+            FetchOrders([
+                ORM.Where({ id: orderID }),
+                ORM.Update({accepted: now, notes, updated_at: new Date()}),
+            ]),
+            GetTier(order.buyerID.toString(), order.sellerID),
         ])
-        .then(() => (CreateOrderItems(parseInt(orderID, 10), items, now)))
+        .then(([_, tier]) => (CreateOrderItems(parseInt(orderID, 10), items, now, tier)))
         .then(() => {
             if (additionals === undefined) return;
             CreateOrderAdditionals(parseInt(orderID, 10), additionals, now);
@@ -49,7 +55,10 @@ function Draft(sellerID: string, {orderID, items, additionals}: ProcessOrderPara
         }
 
         const now = new Date();
-        return CreateOrderItems(parseInt(orderID, 10), items, now)
+        return GetTier(order.buyerID.toString(), order.sellerID)
+        .then(tier => {
+            return CreateOrderItems(parseInt(orderID, 10), items, now, tier);
+        })
         .then(() => {
             if (additionals === undefined) return;
             CreateOrderAdditionals(parseInt(orderID, 10), additionals, now);
