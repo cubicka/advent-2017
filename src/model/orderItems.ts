@@ -3,6 +3,7 @@ import * as lodash from 'lodash';
 
 import { ChangeImageUrl } from '../service/image';
 
+import { PickPrice } from './buyerRelations';
 import pg, { Fetch, FetchFactory, JoinFactory, ORM, Table } from './index';
 import { FetchItemPricesByIDs, ItemPrices } from './itemPrices';
 import { FetchJoinKatalogWs, Katalog } from './katalog';
@@ -115,6 +116,7 @@ export function CreateOrderItems(
     orderID: number,
     items: Array<{priceID: string, quantity: string}>,
     timestamp: Date,
+    tier: string = 'normal',
 ) {
     const validItems = items.filter(item => (parseInt(item.quantity, 10) > 0));
     const priceIDs = validItems.map(item => (item.priceID));
@@ -134,7 +136,7 @@ export function CreateOrderItems(
                 itemID: price.itemID,
                 unit: price.unit,
                 quantity: item.quantity,
-                price: price.price,
+                price: (PickPrice(price, tier)).price,
                 priceID: price.id,
                 revision: timestamp.getTime(),
             };

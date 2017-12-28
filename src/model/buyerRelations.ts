@@ -41,7 +41,7 @@ interface Price {
     price4: number;
 }
 
-export function PickPrice<T extends Price>(item: T, tier: string) {
+export function PickPrice<T extends Price>(item: T, tier: string): T {
     const normalizedPrice = NormalizePrice([item.price, item.price2 || 0, item.price3 || 0, item.price4 || 0]);
 
     let price = normalizedPrice[0];

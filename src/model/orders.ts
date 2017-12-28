@@ -1,6 +1,7 @@
 import * as Bluebird from 'bluebird';
 import * as lodash from 'lodash';
 
+import { GetTier } from './buyerRelations';
 import { Buyer } from './buyers';
 import pg, { BuilderFn, CountFactory, Extender, FetchAndCount, FetchFactory, Join, ORM, Selector,
     Table } from './index';
@@ -217,19 +218,22 @@ function Create(order: OrderInsertParams) {
     const {sellerID, buyerID, address, items, isCOD, additionals} = order;
 
     const created = new Date();
-    return FetchOrders([
-        ORM.Insert({
-            sellerID,
-            buyerID,
-            address,
-            created,
-            isCOD,
-            isPaid: false,
-        }, ['id']),
+    return Bluebird.all([
+        FetchOrders([
+            ORM.Insert({
+                sellerID,
+                buyerID,
+                address,
+                created,
+                isCOD,
+                isPaid: false,
+            }, ['id']),
+        ]),
+        GetTier(buyerID.toString(), sellerID.toString()),
     ])
-    .then(ids => {
+    .then(([ids, tier]) => {
         const {id} = ids[0];
-        return CreateOrderItems(id, items, created)
+        return CreateOrderItems(id, items, created, tier)
         .then(() => {
             if (additionals) return CreateOrderAdditionals(id, additionals, created);
             return [];
