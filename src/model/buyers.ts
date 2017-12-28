@@ -52,19 +52,41 @@ function CreateBuyer(buyer: BuyerInsertParams, userData: Omit<User, 'id'>): Blue
     return CreateUser(userData)
     .then(createdUser => {
         return FetchBuyer([
-            ORM.Insert({
-                ...buyer,
-                ktp: buyer.ktp || null,
-                latitude: buyer.latitude || null,
-                longitude: buyer.longitude || null,
-                profilePicture: buyer.profilePicture || null,
-                selfie: buyer.selfie || null,
-                signature: buyer.signature || null,
-                verification: buyer.verification || null,
-                zipcode: buyer.zipcode || null,
-                userID: createdUser.id,
-            }, ['id', 'userID']),
+            ORM.Where({ userID: createdUser.id }),
         ])
+        .then(buyers => {
+            if (buyers.length === 0) {
+                return FetchBuyer([
+                    ORM.Insert({
+                        ...buyer,
+                        ktp: buyer.ktp || null,
+                        latitude: buyer.latitude || null,
+                        longitude: buyer.longitude || null,
+                        profilePicture: buyer.profilePicture || null,
+                        selfie: buyer.selfie || null,
+                        signature: buyer.signature || null,
+                        verification: buyer.verification || null,
+                        zipcode: buyer.zipcode || null,
+                        userID: createdUser.id,
+                    }, ['id', 'userID']),
+                ]);
+            }
+
+            return FetchBuyer([
+                ORM.Where({ id: buyers[0].id }),
+                ORM.Update({
+                    ...buyer,
+                    ktp: buyer.ktp || null,
+                    latitude: buyer.latitude || null,
+                    longitude: buyer.longitude || null,
+                    profilePicture: buyer.profilePicture || null,
+                    selfie: buyer.selfie || null,
+                    signature: buyer.signature || null,
+                    verification: buyer.verification || null,
+                    zipcode: buyer.zipcode || null,
+                }, ['id', 'userID']),
+            ]);
+        })
         .then(users => users[0]);
     });
 }
