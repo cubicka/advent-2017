@@ -112,7 +112,7 @@ export function ChangeTier(sellerID: number, buyerID: number, tier: RelationsTie
     .then(relations => {
         if (relations.length === 0) throw new Error('Tidak ada relasi antara ws dan retailer');
         return FetchRelations([
-            ORM.Where({ id: relations[0].id }),
+            ORM.Where({ buyerID, sellerID }),
             ORM.Update({ type: tier, updated_at: new Date() }),
         ]);
     });

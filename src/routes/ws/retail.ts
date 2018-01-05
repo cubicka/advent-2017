@@ -48,7 +48,7 @@ function Activate(req: express.Request, res: express.Response, next: express.Nex
 
     return Buyers.ListByPhone(req.body.phone)
     .then(buyers => {
-        if (buyers.length !== 1) {
+        if (buyers.length === 0) {
             res.send400('Buyer tidak ditemukan');
             return;
         }
@@ -66,7 +66,7 @@ function Deactivate(req: express.Request, res: express.Response, next: express.N
 
     return Buyers.ListByPhone(req.body.phone)
     .then(buyers => {
-        if (buyers.length !== 1) {
+        if (buyers.length === 0) {
             res.send400('Buyer tidak ditemukan');
             return;
         }
