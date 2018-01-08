@@ -5,7 +5,7 @@ import { KatalogPriceListed, KatalogPriceUnlisted, WSDelete, WSImageUpdate, WSUp
 import Sellers from '../../model/sellers';
 import { ChangeImageUrl } from '../../service/image';
 import { CleanQuery } from '../../util/obj';
-import { IsOptional, IsParseNumber, IsString, Middleware } from '../../util/validation';
+import { IsNumber, IsOptional, IsParseNumber, IsString, Middleware } from '../../util/validation';
 
 import { ParseLimitOffset } from '../middleware/helper';
 import S3Middleware from '../middleware/s3';
@@ -65,6 +65,7 @@ const specsForUpdate = {
         prices: IsOptional([{
             unit: IsString,
             prices: [IsParseNumber],
+            ratio: IsNumber,
         }]),
     },
 };
