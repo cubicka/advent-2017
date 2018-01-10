@@ -263,7 +263,7 @@ interface KatalogWSParams {
     image?: string;
     itemID?: number;
     name?: string;
-    prices?: Array<{unit: string, prices: number[]}>;
+    prices?: Array<{unit: string, prices: number[], ratio: number}>;
 }
 
 export function WSUpdate(sellerID: number, katalogWsID: string, updateData: KatalogWSParams) {
