@@ -189,7 +189,13 @@ function DetailsBySeller(sellerID: string, orderID: string) {
     })
     .then(orders => {
         if (orders.orders.length === 0) throw new Error('Order tidak ditemukan.');
-        return orders.orders[0];
+        return FetchOrders([
+            ORM.Where({ id: orders.orders[0].details.id }),
+            ORM.Update({ read: true }),
+        ])
+        .then(() => {
+            return orders.orders[0];
+        });
     });
 }
 
