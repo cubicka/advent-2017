@@ -75,7 +75,7 @@ export function FetchJoinKatalogWs(
         (katalogWsBuilders, katalogBuilders, {
             ...params,
             columns: [
-                pg.raw('coalesce(priority, 0) as priority'), 'principalID', 'sku',
+                pg.raw('coalesce(priority, 0) as priority'), 'principalID', 'katalog.sku as sku',
                 'katalog_ws.id as itemID', 'katalog.id as katalogID',
                 'katalog.category as katalogCategory', 'katalog_ws.category as wsCategory',
                 'katalog_ws.description as wsDescription', 'katalog.description as katalogDescription',
@@ -151,7 +151,7 @@ export function KatalogPriceListed(
         ...(priceFilter === 'price' ? [ ORM.WhereNotNull('item_prices.sellerID') ] : []),
         ...(priceFilter === 'noPrice' ? [ ORM.WhereNull('item_prices.sellerID') ] : []),
         ORM.GroupBy([
-            'katalog_ws.id', 'katalog.id', 'principalID', 'sku', 'katalog.name', 'katalog_ws.name',
+            'katalog_ws.id', 'katalog.id', 'principalID', 'katalog.sku', 'katalog.name', 'katalog_ws.name',
             'katalog.category', 'katalog_ws.category', 'katalog.image', 'katalog_ws.image',
             'katalog.description', 'katalog_ws.description', 'katalog.priority',
         ]),
@@ -166,7 +166,7 @@ export function KatalogPriceListed(
             Extender(query, [ORM.OrderBy('priority', 'desc'), ORM.OrderBy('katalog_ws.id', 'asc') ]),
             {
                 columns: [
-                    pg.raw('coalesce(priority, 0) as priority'), 'principalID', 'sku',
+                    pg.raw('coalesce(priority, 0) as priority'), 'principalID', 'katalog.sku as sku',
                     'katalog_ws.id as itemID', 'katalog.id as katalogID',
                     'katalog.category as katalogCategory', 'katalog_ws.category as wsCategory',
                     'katalog_ws.description as wsDescription', 'katalog.description as katalogDescription',
