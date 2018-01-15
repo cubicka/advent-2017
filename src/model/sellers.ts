@@ -23,12 +23,13 @@ export interface Seller {
     longitude?: string;
     name: string;
     phone: string;
+    referral?: string;
     shop: string;
     stateID: string;
     userID: string;
 }
 
-const FetchSellers = FetchFactory<Seller>(pg(Table.sellers));
+export const FetchSellers = FetchFactory<Seller>(pg(Table.sellers));
 const FetchUsersSellers = FetchLeftJoin<Seller>(
     pg(Table.users), pg(Table.sellers), 'seller_details.userID', 'users.id', 'seller_details');
 const JoinUsersSellers = JoinFactory(
@@ -45,6 +46,7 @@ function CreateSeller(seller: Omit<Seller, 'userID'>, userData: Omit<User, 'id'>
                 latitude: seller.latitude || null,
                 longitude: seller.longitude || null,
                 userID: createdUser.id,
+                referral: null,
             }),
         ])
         .then(users => users[0]);
@@ -209,6 +211,39 @@ function SetFavorites(buyerID: string, sellerID: string, items: Array<{ itemID: 
     }, []);
 }
 
+function SetReferral(sellerID: number, referral: string) {
+    return Bluebird.all([
+        FetchSellers([
+            ORM.Where({ userID: sellerID }),
+        ]),
+        FetchSellers([
+            ORM.Where({ referral }),
+        ]),
+    ])
+    .then(([sellers, referrals]) => {
+        if (sellers.length === 0) throw new Error('WS tidak ditemukan.');
+        if (referrals.length !== 0) throw new Error('Referral telah terpakai.');
+
+        return FetchSellers([
+            ORM.Where({ userID: sellerID }),
+            ORM.Update({ referral }, ['referral']),
+        ])
+        .then(() => {
+            return referral;
+        });
+    });
+}
+
+function GetReferral(sellerID: number) {
+    return FetchSellers([
+        ORM.Where({ userID: sellerID }),
+    ])
+    .then(sellers => {
+        if (sellers.length === 0) throw new Error('WS tidak ditemukan.');
+        return sellers[0].referral || null;
+    });
+}
+
 export default {
     CreateSeller,
     Details,
@@ -216,9 +251,11 @@ export default {
     Favorites,
     GetByPhone,
     GetByUsername,
+    GetReferral,
     ListForBuyer,
     MarkNeedSync,
     SetFavorites,
+    SetReferral,
     Update,
     UpdateImage,
 };

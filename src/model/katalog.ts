@@ -329,19 +329,7 @@ export function SellerCategory(sellerID: string) {
         sortOrder: 'desc',
         sortBy: 'priority',
     })
-    // return pg('katalog')
-    //     .leftJoin('item_prices', function() {
-    //         this.on("item_prices.itemID", "=", "katalog.id")
-    //         .andOn('item_prices.sellerID', '=', parseInt(sellerID,10))
-    //     })
-    //     .whereNotNull('sellerID')
-    //     .where('item_prices.active', '=', true)
-    //     .groupBy('katalog.id', 'item_prices.id')
-    //     .having(pg.raw('count(*)'), '>', 0)
-    //     .orderBy('priority', 'desc')
-    //     .distinct('category')
-    //     .select('priority', 'item_prices.active')
     .then(result => {
-        return lodash.uniq(result.map(x => (x.category)));
+        return lodash.uniq(result.map(x => (x.category.toLowerCase())));
     });
 }

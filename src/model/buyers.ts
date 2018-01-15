@@ -5,9 +5,10 @@ import * as lodash from 'lodash';
 import { Normalize } from '../util/phone';
 import { Omit } from '../util/type';
 
-import { Relations } from './buyerRelations';
+import { FetchRelations, Relations } from './buyerRelations';
 import DeliveryOptions from './deliveryOptions';
 import pg, { Fetch, FetchAndCount, FetchFactory, FetchJoin, JoinFactory, LeftJoinFactory, ORM, Table } from './index';
+import { FetchSellers } from './sellers';
 import { AddCity } from './states';
 import { CreateUser, FetchUsers, User } from './users';
 
@@ -245,11 +246,33 @@ function ChangeDelivery(sellerID: string, buyerID: string, options: string, acti
     });
 }
 
+function JoinWs(buyerID: number, referral: string) {
+    return FetchSellers([ ORM.Where({ referral })])
+    .then(sellers => {
+        if (sellers.length === 0) throw new Error('Referral tidak ditemukan.');
+
+        const seller = sellers[0];
+        return FetchRelations([ ORM.Where({ sellerID: seller.userID, buyerID }) ])
+        .then(relations => {
+            if (relations.length !== 0) throw new Error('Referral tidak dapat digunakan.');
+
+            return FetchRelations([
+                ORM.Insert({
+                    buyerID, sellerID: seller.userID,
+                    active: true,
+                    type: 'normal',
+                }),
+            ]);
+        });
+    });
+}
+
 export default {
     ChangeDelivery,
     ChangeLatLong,
     CreateBuyer,
     CreateVerification,
+    JoinWs,
     ListByID,
     ListByPhone,
     ListForSeller,

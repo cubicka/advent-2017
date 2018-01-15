@@ -2,8 +2,9 @@ import express from 'express';
 
 import * as Relations from '../../model/buyerRelations';
 import Buyers from '../../model/buyers';
+import Sellers from '../../model/sellers';
 import { CleanQuery } from '../../util/obj';
-import { IsBool, IsPhone, Middleware} from '../../util/validation';
+import { IsBool, IsPhone, Middleware, IsString} from '../../util/validation';
 
 import { ParseLimitOffset } from '../middleware/helper';
 
@@ -120,14 +121,40 @@ function DeleteRelationsPipe(req: express.Request, res: express.Response, next: 
     });
 }
 
+function GetReferral(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const user = req.kulakan.user;
+
+    return Sellers.GetReferral(user.id)
+    .then(referral => {
+        res.send({ referral });
+    });
+}
+
+const postReferralSpecs = {
+    body: {
+        referral: IsString,
+    },
+};
+
+function PostReferral(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const user = req.kulakan.user;
+
+    return Sellers.SetReferral(user.id, req.body.referral)
+    .then(referral => {
+        res.send({ referral });
+    });
+}
+
 export default {
     get: [
         ['/', ParseLimitOffset, List],
         ['/find-buyer', Middleware(byPhoneSpecs), ByPhone],
+        ['/join', GetReferral],
     ],
     post: [
         ['/activate', Middleware(phoneBodySpecs), Activate],
         ['/deactivate', Middleware(phoneBodySpecs), Deactivate],
+        ['/join', Middleware(postReferralSpecs), PostReferral],
         ['/:id(\\d+)/change-tier', Middleware(changeTierSpecs), ChangeTier],
         ['/:id(\\d+)/change-delivery', Middleware(changeDeliverySpecs), ChangeDelivery],
         ['/:id(\\d+)/delete-relation', DeleteRelationsPipe],

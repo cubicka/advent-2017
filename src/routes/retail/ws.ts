@@ -3,6 +3,7 @@ import express from 'express';
 import * as lodash from 'lodash';
 
 import { GetTier, PickPrice } from '../../model/buyerRelations';
+import Buyers from '../../model/buyers';
 import { KatalogPriceListed, SellerCategory } from '../../model/katalog';
 import Sellers from '../../model/sellers';
 import { ChangeImageUrl } from '../../service/image';
@@ -108,6 +109,24 @@ function UpdateFavorites(req: express.Request, res: express.Response, next: expr
     });
 }
 
+const joinWsSpecs = {
+    body: {
+        referral: (s: string) => (IsString(s) && s !== ''),
+    },
+};
+
+function JoinWS(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const { user } = req.kulakan;
+
+    return Buyers.JoinWs(user.id, req.body.referral)
+    .then(() => {
+        res.send({ status: 'success' });
+    })
+    .catch((e: any) => {
+        res.status(400).send({ status: 'failed', message: e.message });
+    });
+}
+
 export default {
     get: [
         ['/', ParseLimitOffset, List],
@@ -118,6 +137,7 @@ export default {
         ['/:id(\\d+)/favorites', GetFavorites],
     ],
     post: [
+        ['/join', Middleware(joinWsSpecs), JoinWS],
         ['/:id(\\d+)/favorites', UpdateFavorites],
     ],
 };
