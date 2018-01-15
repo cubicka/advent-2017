@@ -155,9 +155,9 @@ function ListForSeller(sellerID: string, {limit, name = '', offset, sortBy = '',
     });
 }
 
-function ListByPhone(phone: string) {
+function ListByPhone(userID: number, phone: string) {
     return Fetch<Buyer & Relations>(
-        LeftJoinBuyerRelations([ORM.Where({phone: Normalize(phone)})], []),
+        LeftJoinBuyerRelations([ORM.Where({phone: Normalize(phone)})], [ORM.Where({sellerID: userID})]),
     )
     .then(buyers => {
         return buyers.map(buyer => {

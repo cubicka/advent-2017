@@ -30,7 +30,8 @@ const byPhoneSpecs = {
 };
 
 function ByPhone(req: express.Request, res: express.Response, next: express.NextFunction) {
-    return Buyers.ListByPhone(req.query.phone)
+    const user = req.kulakan.user;
+    return Buyers.ListByPhone(user.id, req.query.phone)
     .then(result => {
         res.send({result});
     });
@@ -46,7 +47,7 @@ function Activate(req: express.Request, res: express.Response, next: express.Nex
     const {user} = req.kulakan;
     const sellerID = user.id;
 
-    return Buyers.ListByPhone(req.body.phone)
+    return Buyers.ListByPhone(sellerID, req.body.phone)
     .then(buyers => {
         if (buyers.length === 0) {
             res.send400('Buyer tidak ditemukan');
@@ -64,7 +65,7 @@ function Deactivate(req: express.Request, res: express.Response, next: express.N
     const {user} = req.kulakan;
     const sellerID = user.id;
 
-    return Buyers.ListByPhone(req.body.phone)
+    return Buyers.ListByPhone(sellerID, req.body.phone)
     .then(buyers => {
         if (buyers.length === 0) {
             res.send400('Buyer tidak ditemukan');
