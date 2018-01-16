@@ -4,7 +4,7 @@ import * as Relations from '../../model/buyerRelations';
 import Buyers from '../../model/buyers';
 import Sellers from '../../model/sellers';
 import { CleanQuery } from '../../util/obj';
-import { IsBool, IsPhone, IsString, Middleware} from '../../util/validation';
+import { IsBool, IsString, Middleware} from '../../util/validation';
 
 import { ParseLimitOffset } from '../middleware/helper';
 
@@ -24,11 +24,11 @@ function List(req: express.Request, res: express.Response, next: express.NextFun
     });
 }
 
-const byPhoneSpecs = {
-    query: {
-        phone: IsPhone,
-    },
-};
+// const byPhoneSpecs = {
+//     query: {
+//         phone: IsPhone,
+//     },
+// };
 
 function ByPhone(req: express.Request, res: express.Response, next: express.NextFunction) {
     const user = req.kulakan.user;
@@ -38,11 +38,11 @@ function ByPhone(req: express.Request, res: express.Response, next: express.Next
     });
 }
 
-const phoneBodySpecs = {
-    body: {
-        phone: IsPhone,
-    },
-};
+// const phoneBodySpecs = {
+//     body: {
+//         phone: IsPhone,
+//     },
+// };
 
 function Activate(req: express.Request, res: express.Response, next: express.NextFunction) {
     const {user} = req.kulakan;
@@ -148,12 +148,13 @@ function PostReferral(req: express.Request, res: express.Response, next: express
 export default {
     get: [
         ['/', ParseLimitOffset, List],
-        ['/find-buyer', Middleware(byPhoneSpecs), ByPhone],
+        ['/find-buyer', ByPhone],
+        // ['/find-buyer', Middleware(byPhoneSpecs), ByPhone],
         ['/referral', GetReferral],
     ],
     post: [
-        ['/activate', Middleware(phoneBodySpecs), Activate],
-        ['/deactivate', Middleware(phoneBodySpecs), Deactivate],
+        ['/activate', Activate],
+        ['/deactivate', Deactivate],
         ['/referral', Middleware(postReferralSpecs), PostReferral],
         ['/:id(\\d+)/change-tier', Middleware(changeTierSpecs), ChangeTier],
         ['/:id(\\d+)/change-delivery', Middleware(changeDeliverySpecs), ChangeDelivery],
