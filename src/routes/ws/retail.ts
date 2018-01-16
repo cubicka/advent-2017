@@ -4,7 +4,7 @@ import * as Relations from '../../model/buyerRelations';
 import Buyers from '../../model/buyers';
 import Sellers from '../../model/sellers';
 import { CleanQuery } from '../../util/obj';
-import { IsBool, IsPhone, Middleware, IsString} from '../../util/validation';
+import { IsBool, IsPhone, IsString, Middleware} from '../../util/validation';
 
 import { ParseLimitOffset } from '../middleware/helper';
 

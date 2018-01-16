@@ -267,13 +267,17 @@ interface KatalogWSParams {
 }
 
 export function WSUpdate(sellerID: number, katalogWsID: string, updateData: KatalogWSParams) {
+    function CleanCategory(category: string) {
+        return category.split('').map(c => c === '&' ? '-' : c).join('');
+    }
+
     return Bluebird.try(() => {
         if (katalogWsID === undefined) {
             return FetchKatalogWs([
                 ORM.Insert({
                     sellerID,
                     name: updateData.name || '',
-                    category: updateData.category || '',
+                    category: CleanCategory(updateData.category || ''),
                 }, ['id']),
             ]);
         }
@@ -287,7 +291,7 @@ export function WSUpdate(sellerID: number, katalogWsID: string, updateData: Kata
 
         const { category, description, image, itemID, name } = updateData;
         const validData: { [x: string]: string | number } = {};
-        if (category !== undefined) validData.category = category;
+        if (category !== undefined) validData.category = CleanCategory(category);
         if (description !== undefined) validData.description = description;
         if (image !== undefined) validData.image = image;
         if (itemID !== undefined) validData.katalogID = itemID;
