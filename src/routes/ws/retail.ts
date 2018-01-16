@@ -149,12 +149,12 @@ export default {
     get: [
         ['/', ParseLimitOffset, List],
         ['/find-buyer', Middleware(byPhoneSpecs), ByPhone],
-        ['/join', GetReferral],
+        ['/referral', GetReferral],
     ],
     post: [
         ['/activate', Middleware(phoneBodySpecs), Activate],
         ['/deactivate', Middleware(phoneBodySpecs), Deactivate],
-        ['/join', Middleware(postReferralSpecs), PostReferral],
+        ['/referral', Middleware(postReferralSpecs), PostReferral],
         ['/:id(\\d+)/change-tier', Middleware(changeTierSpecs), ChangeTier],
         ['/:id(\\d+)/change-delivery', Middleware(changeDeliverySpecs), ChangeDelivery],
         ['/:id(\\d+)/delete-relation', DeleteRelationsPipe],
