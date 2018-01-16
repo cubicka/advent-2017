@@ -52,6 +52,7 @@ function Items(req: express.Request, res: express.Response, next: express.NextFu
                 count: items.count,
                 items: items.items.map(ChangeImageUrl).map(item => {
                     return lodash.assign(item, {
+                        category: item.category.toLowerCase(),
                         prices: item.prices !== undefined ?
                             item.prices.map(prices => PickPrice(prices, tier)) :
                             [],
@@ -77,6 +78,7 @@ function ItemsByIDs(req: express.Request, res: express.Response, next: express.N
                 count: items.count,
                 items: items.items.map(ChangeImageUrl).map(item => {
                     return lodash.assign(item, {
+                        category: item.category.toLowerCase(),
                         prices: item.prices !== undefined ?
                             item.prices.map(prices => PickPrice(prices, tier)) :
                             [],
