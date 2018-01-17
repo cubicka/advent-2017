@@ -5,7 +5,7 @@ import { KatalogPriceListed, KatalogPriceUnlisted, WSDelete, WSImageUpdate, WSUp
 import Sellers from '../../model/sellers';
 import { ChangeImageUrl } from '../../service/image';
 import { CleanQuery } from '../../util/obj';
-import { IsNumber, IsOptional, IsParseNumber, IsString, Middleware } from '../../util/validation';
+import { IsBool, IsNumber, IsOptional, IsParseNumber, IsString, Middleware } from '../../util/validation';
 
 import { ParseLimitOffset } from '../middleware/helper';
 import S3Middleware from '../middleware/s3';
@@ -21,6 +21,7 @@ function KatalogListed(req: express.Request, res: express.Response, next: expres
         price: CleanQuery(price),
         limit: params.limit,
         offset: params.offset,
+        forWs: true,
     };
 
     return KatalogPriceListed(user.id, queryParams)
@@ -66,6 +67,7 @@ const specsForUpdate = {
             unit: IsString,
             prices: [IsParseNumber],
             ratio: IsNumber,
+            onSale: IsBool,
         }]),
     },
 };

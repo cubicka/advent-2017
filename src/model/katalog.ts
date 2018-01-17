@@ -35,6 +35,7 @@ interface KatalogParams {
     noImage?: boolean;
     offset?: number;
     price?: string;
+    forWs?: boolean;
 }
 
 // const FetchKatalog = FetchFactory<Katalog>(pg(Table.katalog));
@@ -43,7 +44,6 @@ const JoinKatalogWS = LeftJoinFactory(pg(Table.katalog), pg(Table.katalogWs),
     'katalog.id', 'katalog_ws.katalogID', 'katalog_ws');
 
 function CleanKatalogPrice(katalogs: KatalogPrice[]) {
-    console.log('katalog', katalogs.length);
     return katalogs.map(katalog => {
         const item = lodash.assign(katalog, {
             name: katalog.wsName || katalog.katalogName,
@@ -120,7 +120,7 @@ interface KatalogPrice {
 
 export function KatalogPriceListed(
     sellerID: string,
-    {category, ids, limit, name, noImage, offset, price: priceFilter}: KatalogParams,
+    {category, forWs, ids, limit, name, noImage, offset, price: priceFilter}: KatalogParams,
 ) {
     const katalogWsQueries = [
         ORM.Where({ 'katalog_ws.sellerID': sellerID }),
@@ -159,8 +159,16 @@ export function KatalogPriceListed(
         ORM.Having(pg.raw('count(*)'), ['>', 0]),
     ];
 
-    const query = QueryKatalog(katalogWsQueries, [],
-        [ ORM.Where({ 'item_prices.sellerID': sellerID, 'active': true }) ]);
+    const itemPricesFilter: {[name: string]: string | boolean} = {
+        'item_prices.sellerID': sellerID,
+        'active': true,
+    };
+
+    if (!forWs) {
+        itemPricesFilter.onSale = true;
+    }
+
+    const query = QueryKatalog(katalogWsQueries, [], [ ORM.Where(itemPricesFilter) ]);
 
     return Bluebird.all([
         Fetch<KatalogPrice>(
@@ -264,7 +272,7 @@ interface KatalogWSParams {
     image?: string;
     itemID?: number;
     name?: string;
-    prices?: Array<{unit: string, prices: number[], ratio: number}>;
+    prices?: Array<{unit: string, prices: number[], ratio: number, onSale: boolean}>;
 }
 
 export function WSUpdate(sellerID: number, katalogWsID: string, updateData: KatalogWSParams) {
@@ -335,7 +343,6 @@ export function SellerCategory(sellerID: string) {
         sortBy: 'priority',
     })
     .then(result => {
-        console.log('result', result.length);
         return lodash.uniq(result.map(x => (x.category.toLowerCase())));
     });
 }

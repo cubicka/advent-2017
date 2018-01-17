@@ -57,7 +57,7 @@ export function NormalizePrice(prices: number[]) {
     return sortedPrices;
 }
 
-type PricesData = Array<{unit: string, prices: number[], ratio: number}>;
+type PricesData = Array<{unit: string, prices: number[], ratio: number, onSale: boolean}>;
 export function UpdatePrices(sellerID: number, itemID: number, prices: PricesData = []) {
     return FetchItemPrices([
         ORM.Where({itemID, sellerID}),
@@ -78,6 +78,7 @@ export function UpdatePrices(sellerID: number, itemID: number, prices: PricesDat
                         unit: price.unit,
                         active: true,
                         ratio: price.ratio,
+                        onSale: price.onSale,
                     }),
                 ]);
             }
@@ -92,6 +93,7 @@ export function UpdatePrices(sellerID: number, itemID: number, prices: PricesDat
                     active: true,
                     itemID, sellerID,
                     ratio: price.ratio,
+                    onSale: price.onSale,
                 }),
             ]);
         }, []);
