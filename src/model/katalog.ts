@@ -43,6 +43,7 @@ const JoinKatalogWS = LeftJoinFactory(pg(Table.katalog), pg(Table.katalogWs),
     'katalog.id', 'katalog_ws.katalogID', 'katalog_ws');
 
 function CleanKatalogPrice(katalogs: KatalogPrice[]) {
+    console.log('katalog', katalogs.length);
     return katalogs.map(katalog => {
         const item = lodash.assign(katalog, {
             name: katalog.wsName || katalog.katalogName,
@@ -70,8 +71,8 @@ export function FetchJoinKatalogWs(
     katalogBuilders: BuilderFn[] = [],
     params: QueryParams = {},
 ) {
-    return FetchLeftJoin<KatalogPrice>(pg(Table.katalog), pg(Table.katalogWs),
-        'katalog.id', 'katalog_ws.katalogID', 'katalog_ws')
+    return FetchLeftJoin<KatalogPrice>(pg(Table.katalogWs), pg(Table.katalog),
+        'katalog_ws.katalogID', 'katalog.id', 'katalog')
         (katalogWsBuilders, katalogBuilders, {
             ...params,
             columns: [
@@ -329,11 +330,12 @@ export function SellerCategory(sellerID: string) {
     return FetchJoinKatalogWs([
         ORM.Where({ sellerID }),
     ], [], {
-        columns: ['katalog_ws.category as category', pg.raw('coalesce(priority,0) as priority')],
+        // columns: ['katalog_ws.category as category', pg.raw('coalesce(priority,0) as priority')],
         sortOrder: 'desc',
         sortBy: 'priority',
     })
     .then(result => {
+        console.log('result', result.length);
         return lodash.uniq(result.map(x => (x.category.toLowerCase())));
     });
 }
