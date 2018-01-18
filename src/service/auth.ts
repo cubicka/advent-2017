@@ -29,6 +29,7 @@ function AuthenticateLogin(login: Login): Bluebird<User> {
         const hashedPassword = HashOfPassword(password, salt);
 
         if (hash !== hashedPassword) throw new Error('Autentikasi gagal');
+        if (!users[0].verified) throw new Error('Belum terverifikasi');
         return users[0];
     });
 }
