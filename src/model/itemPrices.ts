@@ -66,34 +66,31 @@ export function UpdatePrices(sellerID: number, itemID: number, prices: PricesDat
     .then(prevPrices => {
         return Bluebird.reduce(prices.filter(p => p.prices.some(x => x > 0)), (accum, price, idx) => {
             const orderedPrice = NormalizePrice(price.prices);
+            const pricesData: {[x: string]: any} = {
+                price: orderedPrice[0],
+                price2: orderedPrice[1] || 0,
+                price3: orderedPrice[2] || 0,
+                price4: orderedPrice[3] || 0,
+                unit: price.unit,
+                active: true,
+                ratio: price.ratio,
+            };
+
+            if (price.onSale !== undefined) {
+                pricesData.onSale = price.onSale;
+            }
 
             if (idx < prevPrices.length) {
                 return FetchItemPrices([
                     ORM.Where({id: prevPrices[idx].id}),
-                    ORM.Update({
-                        price: orderedPrice[0],
-                        price2: orderedPrice[1] || 0,
-                        price3: orderedPrice[2] || 0,
-                        price4: orderedPrice[3] || 0,
-                        unit: price.unit,
-                        active: true,
-                        ratio: price.ratio,
-                        onSale: price.onSale,
-                    }),
+                    ORM.Update(pricesData),
                 ]);
             }
 
             return FetchItemPrices([
                 ORM.Insert({
-                    price: orderedPrice[0],
-                    price2: orderedPrice[1] || 0,
-                    price3: orderedPrice[2] || 0,
-                    price4: orderedPrice[3] || 0,
-                    unit: price.unit,
-                    active: true,
+                    ...pricesData,
                     itemID, sellerID,
-                    ratio: price.ratio,
-                    onSale: price.onSale,
                 }),
             ]);
         }, []);

@@ -67,7 +67,7 @@ const specsForUpdate = {
             unit: IsString,
             prices: [IsParseNumber],
             ratio: IsNumber,
-            onSale: IsBool,
+            onSale: IsOptional(IsBool),
         }]),
     },
 };
