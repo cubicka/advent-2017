@@ -18,7 +18,7 @@ export function Middleware(type: string) {
 
             return Users.GetByToken(result.token)
             .then(users => {
-                if (users.length !== 1 || users[0].id !== result.userID || users[0].type !== type) {
+                if (users.length !== 1 || users[0].id !== result.userID || users[0].type !== type || !users[0].verified) {
                     return Fail();
                 }
 
