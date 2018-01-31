@@ -222,7 +222,9 @@ function SetReferral(sellerID: number, referral: string) {
     ])
     .then(([sellers, referrals]) => {
         if (sellers.length === 0) throw new Error('WS tidak ditemukan.');
-        if (referrals.length !== 0) throw new Error('Referral telah terpakai.');
+        if (referrals.length !== 0 && referrals[0].userID.toString() !== sellerID.toString()) {
+            throw new Error('Referral telah terpakai.');
+        }
 
         return FetchSellers([
             ORM.Where({ userID: sellerID }),
