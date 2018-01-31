@@ -5,7 +5,8 @@ import { KatalogPriceListed, KatalogPriceUnlisted, WSDelete, WSImageUpdate, WSUp
 import Sellers from '../../model/sellers';
 import { ChangeImageUrl } from '../../service/image';
 import { CleanQuery } from '../../util/obj';
-import { IsBool, IsNumber, IsOptional, IsParseNumber, IsString, Middleware } from '../../util/validation';
+import { IsBool, IsNumber, IsOptional, IsOptionalOrNull,
+    IsParseNumber, IsString, Middleware } from '../../util/validation';
 
 import { ParseLimitOffset } from '../middleware/helper';
 import S3Middleware from '../middleware/s3';
@@ -58,12 +59,12 @@ function KatalogUnlisted(req: express.Request, res: express.Response, next: expr
 
 const specsForUpdate = {
     body: {
-        name: IsOptional(IsString),
-        category: IsOptional(IsString),
-        description: IsOptional(IsString),
-        image: IsOptional(IsString),
-        itemID: IsOptional(IsParseNumber),
-        prices: IsOptional([{
+        name: IsOptionalOrNull(IsString),
+        category: IsOptionalOrNull(IsString),
+        description: IsOptionalOrNull(IsString),
+        image: IsOptionalOrNull(IsString),
+        itemID: IsOptionalOrNull(IsParseNumber),
+        prices: IsOptionalOrNull([{
             unit: IsString,
             prices: [IsParseNumber],
             ratio: IsNumber,
@@ -85,7 +86,14 @@ function Update(req: express.Request, res: express.Response, next: express.NextF
         }
 
         return WSUpdate(user.id, katalogWsID,
-            {name, category, image, prices, description, itemID});
+            {
+                name: name || undefined,
+                category: category || undefined,
+                image: image || undefined,
+                prices: prices || undefined,
+                description: description || undefined,
+                itemID: itemID || undefined,
+            });
     })
     .then(() => {
         return Sellers.MarkNeedSync(user.id);

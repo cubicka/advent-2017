@@ -66,6 +66,13 @@ export function IsOptional(specs: any) {
     };
 }
 
+export function IsOptionalOrNull(specs: any) {
+    return (obj: any) => {
+        if (obj === undefined || obj === null) return true;
+        return Validation(specs)(obj);
+    };
+}
+
 export function IsParseDate(s: string): boolean {
     const d = new Date(s);
     return (Object.prototype.toString.call(d) === '[object Date]') && !(isNaN(d.getTime()));
