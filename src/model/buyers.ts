@@ -88,7 +88,12 @@ function CreateBuyer(buyer: BuyerInsertParams, userData: Omit<User, 'id'>): Blue
                 }, ['id', 'userID']),
             ]);
         })
-        .then(users => users[0]);
+        .then(users => {
+            return pg('delivery_options').insert({ userID: users[0].id, options: 'pickup', active: true })
+            .then(() => {
+                return users[0];
+            });
+        });
     });
 }
 
@@ -106,6 +111,7 @@ function ListForSeller(sellerID: string, {limit, name = '', offset, sortBy = '',
             case 'name': return ['name', 'asc'];
             case 'shop': return ['shop', 'asc'];
             // default: return ['buyer_relations.created_at', 'desc'];
+            // case 'createDate': return ['buyer_relations.created_at', 'desc'];
             default: return ['name', 'desc'];
         }
     }
