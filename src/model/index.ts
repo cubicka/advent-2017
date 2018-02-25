@@ -9,18 +9,19 @@ const pg = knex({
 });
 
 export enum Table {
-    additionals = 'additionals',
-    buyers = 'buyer_details',
-    buyersRelations = 'buyer_relations',
-    deliveryOptions = 'delivery_options',
-    itemPrices = 'item_prices',
-    katalog = 'katalog',
-    katalogWs = 'katalog_ws',
-    orderItems = 'order_items',
-    orders = 'orders',
-    passwordTokens = 'password_token',
-    sellers = 'seller_details',
-    users = 'users',
+    // additionals = 'additionals',
+    // buyers = 'buyer_details',
+    // buyersRelations = 'buyer_relations',
+    // deliveryOptions = 'delivery_options',
+    // itemPrices = 'item_prices',
+    // katalog = 'katalog',
+    // katalogWs = 'katalog_ws',
+    // orderItems = 'order_items',
+    // orders = 'orders',
+    // passwordTokens = 'password_token',
+    // sellers = 'seller_details',
+    // users = 'users',
+    user = 'x_user',
 }
 
 export type BuilderFn = (builder: knex.QueryBuilder) => knex.QueryBuilder;
@@ -49,6 +50,10 @@ export function Fetch<T>(query: knex.QueryBuilder, params: QueryParams = {}): Bl
     if (columns) paramsBuilder.push(Select(...columns));
 
     return Extender(query.clone(), paramsBuilder).then(result => result);
+}
+
+export function FetchTable<T>(name: Table) {
+    return FetchFactory<T>(pg(name));
 }
 
 export function FetchFactory<T>(query: knex.QueryBuilder) {
@@ -196,7 +201,7 @@ function Update(updateInfo: { [x: string]: knexValue }, returning?: string[]): B
     return builder => builder.update(updateInfo, returning);
 }
 
-function Where(filters: { [x: string]: knexValue } | (() => any)): BuilderFn {
+export function Where(filters: { [x: string]: knexValue } | (() => any)): BuilderFn {
     return builder => builder.where(filters);
 }
 
@@ -220,11 +225,11 @@ function WhereNull(key: string): BuilderFn {
     return builder => builder.whereNull(key);
 }
 
-export const ORM = {
-    Count, Fetch, FetchAndCount, From, Join, LeftJoin,
-    GroupBy, Having, Insert, Limit, Offset, OrderBy, Select, Update,
-    Where, WhereA, WhereIn, WhereNot, WhereNotNull, WhereNull,
-};
+// export const ORM = {
+//     Count, Fetch, FetchAndCount, From, Join, LeftJoin,
+//     GroupBy, Having, Insert, Limit, Offset, OrderBy, Select, Update,
+//     Where, WhereA, WhereIn, WhereNot, WhereNotNull, WhereNull,
+// };
 
 export function Selector(names: string[]) {
     return names.map((name: string) => (pg.raw(`to_json(${name}.*) as ${name}`)));

@@ -1,3 +1,3 @@
 export default {
-    use: ['/admin', '/retail', '/ws'],
+    use: ['/retail'],
 };
