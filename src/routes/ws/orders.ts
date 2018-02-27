@@ -1,3 +1,4 @@
+import * as bluebird from 'bluebird';
 import express from 'express';
 
 import { GetTransactionOfWS, MarkTransaction } from '../../model/transactions';
@@ -8,6 +9,12 @@ function List(req: express.Request, res: express.Response, next: express.NextFun
     return GetTransactionOfWS(storecode)
     .then(transactions => {
         res.send({ transactions: transactions.slice(0, 1) });
+
+        if (transactions.length > 0) {
+            return MarkTransaction(transactions[0].orderid);
+        }
+
+        return bluebird.try(() => null);
     });
 }
 

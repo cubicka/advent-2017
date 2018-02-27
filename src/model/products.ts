@@ -1,3 +1,4 @@
+import * as bluebird from 'bluebird';
 import * as lodash from 'lodash';
 
 import pg, { Fetch, FetchTable, JoinFactory, Table, Where, WhereIn } from './index';
@@ -7,6 +8,7 @@ interface Brand {
     brandname: string;
     id: number;
     subcategorycode: string;
+    subcategoryname: string;
 }
 
 interface Category {
@@ -23,6 +25,7 @@ interface Price {
 interface Product {
     categorycode: string;
     skucode: string;
+    subcategorycode: string;
 }
 
 const FetchSellerProducts = JoinFactory(
@@ -37,6 +40,34 @@ const FetchBrands = JoinFactory(
 
 const FetchCategories = FetchTable<Category>(Table.category);
 const FetchPrices = FetchTable<Price>(Table.prices);
+const FetchSubcategories = FetchTable<Brand>(Table.subcategory);
+
+function AddDetail(storecode: string, products: Product[]) {
+    const categorycodes = lodash.uniq(products.map(p => p.categorycode));
+    const subcategorycodes = lodash.uniq(products.map(p => p.subcategorycode));
+    const skucodes = lodash.uniq(products.map(p => p.skucode));
+
+    return bluebird.all([
+        FetchCategories([ WhereIn('categorycode', categorycodes) ]),
+        FetchSubcategories([ WhereIn('subcategorycode', subcategorycodes) ]),
+        FetchPrices([ Where({ storecode }), WhereIn('skucode', skucodes)]),
+    ])
+    .then(([ categories, subcategories, prices]) => {
+        return products.map(p => {
+            return Object.assign(p, {
+                category: (categories.find(c => c.categorycode === p.categorycode) || {
+                    categoryname: '',
+                }).categoryname,
+                subcategory: (subcategories.find(c => c.subcategorycode === p.subcategorycode) || {
+                    subcategoryname: '',
+                }).subcategoryname,
+                price: (prices.find(c => c.skucode === p.skucode) || {
+                    price: 0,
+                }).price,
+            });
+        });
+    });
+}
 
 export function GetCategories(storecode: string) {
     return Fetch<Product>(
@@ -94,7 +125,8 @@ export function GetProductByCategory(storecode: string, categorycode: string) {
                 storecode: parseInt(storecode, 10),
             }),
         ]),
-    );
+    )
+    .then(products => AddDetail(storecode, products));
 }
 
 export function GetProductByIDs(storecode: string, skucodes: string[]) {
