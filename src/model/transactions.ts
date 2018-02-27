@@ -1,4 +1,4 @@
-import pg, { Fetch, FetchTable, Insert, JoinFactory, Table, Where, WhereIn } from './index';
+import pg, { Fetch, FetchTable, Insert, JoinFactory, Table, Update, Where, WhereIn } from './index';
 import { GetPrices, GetProductByIDs } from './products';
 
 interface OrderItem {
@@ -115,4 +115,43 @@ export function GetTransaction(usercode: string) {
             });
         });
     });
+}
+
+export function GetTransactionOfWS(storecode: string) {
+    return FetchOrderMaster([
+        Where({
+            storecode,
+            isprint: 0,
+        }),
+    ], {
+        sortBy: 'orderid',
+        sortOrder: 'asc',
+    })
+    .then(orders => {
+        const orderIDs = orders.map(order => order.orderid);
+
+        return Fetch<OrderItem>(
+            FetchOrderItemDetail([], [
+                WhereIn('orderid', orderIDs),
+            ]),
+        )
+        .then(orderItems => {
+            return orders.map(order => {
+                return Object.assign({}, order, {
+                    items: orderItems.filter(item => item.orderid === order.orderid),
+                });
+            });
+        });
+    });
+}
+
+export function MarkTransaction(orderid: string) {
+    return FetchOrderMaster([
+        Where({
+            orderid,
+        }),
+        Update({
+            isprint: 1,
+        }),
+    ]);
 }

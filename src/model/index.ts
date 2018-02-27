@@ -198,7 +198,7 @@ function Select(...keys: Array<string | knex.Raw>): BuilderFn {
     return builder => builder.select(...keys);
 }
 
-function Update(updateInfo: { [x: string]: knexValue }, returning?: string[]): BuilderFn {
+export function Update(updateInfo: { [x: string]: knexValue }, returning?: string[]): BuilderFn {
     return builder => builder.update(updateInfo, returning);
 }
 

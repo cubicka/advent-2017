@@ -1,3 +1,3 @@
 export default {
-    use: ['/auth', '/retail'],
+    use: ['/auth', '/retail', '/ws'],
 };
