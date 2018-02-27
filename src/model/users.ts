@@ -28,11 +28,6 @@ export interface User {
     active: boolean;
 }
 
-// export interface User extends UserInsertParams {
-//     id: number;
-//     updated_at?: string;
-// }
-
 export const FetchUsers = FetchTable<User>(Table.user);
 
 export function CheckCredentials(username: string, password: string) {

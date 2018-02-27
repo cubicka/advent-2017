@@ -9,18 +9,16 @@ const pg = knex({
 });
 
 export enum Table {
-    // additionals = 'additionals',
-    // buyers = 'buyer_details',
-    // buyersRelations = 'buyer_relations',
-    // deliveryOptions = 'delivery_options',
-    // itemPrices = 'item_prices',
-    // katalog = 'katalog',
-    // katalogWs = 'katalog_ws',
-    // orderItems = 'order_items',
-    // orders = 'orders',
-    // passwordTokens = 'password_token',
-    // sellers = 'seller_details',
-    // users = 'users',
+    brand = 'x_product_brand',
+    category = 'x_product_category',
+    distribution = 'x_product_distribution',
+    orderDetail = 'x_order_detail',
+    orderMaster = 'x_order_master',
+    prices = 'x_product_price',
+    sellers = 'x_store_master',
+    sku = 'x_product_sku',
+    subbrand = 'x_product_subbrand',
+    subcategory = 'x_product_subcategory',
     user = 'x_user',
 }
 
@@ -177,7 +175,10 @@ function Having(firstKey: knex.Raw, keys: Array<string | number>): BuilderFn {
     return builder => builder.having(firstKey, ...keys);
 }
 
-function Insert(obj: { [x: string]: knexValue } | Array<{[x: string]: knexValue}>, returning?: string[]): BuilderFn {
+export function Insert(
+    obj: { [x: string]: knexValue } | Array<{[x: string]: knexValue}>,
+    returning?: string[],
+): BuilderFn {
     return builder => builder.insert(obj, returning);
 }
 
@@ -209,8 +210,12 @@ function WhereA(key: string, ...params: Array<string | number | Date>): BuilderF
     return builder => builder.where(key, ...params);
 }
 
-function WhereIn(key: string, values: Array<string | number>): BuilderFn {
+export function WhereIn(key: string, values: Array<string | number>): BuilderFn {
     return builder => builder.whereIn(key, values);
+}
+
+export function WhereLike(key: string, values: string): BuilderFn {
+    return builder => builder.where(key, 'ilike', values);
 }
 
 function WhereNot(key: string, value: string | number): BuilderFn {

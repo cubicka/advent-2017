@@ -25,7 +25,7 @@ declare module "parsetrace" {
 
 declare namespace Express {
     interface Request {
-        kulakan: {
+        didi: {
             [x: string]: any,
         };
     }

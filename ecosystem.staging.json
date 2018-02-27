@@ -16,8 +16,8 @@
     "deploy" : {
         "staging" : {
             "user" : "ubuntu",
-            "host" : "ec2-52-221-218-87.ap-southeast-1.compute.amazonaws.com",
-            "ref" : "origin/master",
+            "host" : "ec2-13-250-29-56.ap-southeast-1.compute.amazonaws.com",
+            "ref" : "origin/februari",
             "repo": "git@github.com:cubicka/advent-2017",
             "path" : "/home/ubuntu/advent",
             "post-deploy" : "npm i && npm run build && pm2 startOrRestart ecosystem.staging.json --env production"

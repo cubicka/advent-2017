@@ -24,6 +24,12 @@ app.use(cookieParser());
 
 app.use(sessionMiddleware);
 
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
+
 // allow ajax request
 app.use(AllowAJAX({
     origins: config.domain.seller + config.domain.buyer,
@@ -37,7 +43,7 @@ app.use('/', (req, res, next) => {
     if (req.method === 'OPTIONS') {
         res.send();
     } else {
-        req.kulakan = {};
+        req.didi = {};
         next();
     }
 });

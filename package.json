@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "lint": "tslint -p .",
-    "build": "tsc; cp src/config.json dist/config.json; cp src/setara-firebase.json dist/setara-firebase.json; cp -R src/raw dist/raw",
+    "build": "tsc; cp src/config.json dist/config.json; cp -R src/raw dist/raw",
     "start": "npm run build; node dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
