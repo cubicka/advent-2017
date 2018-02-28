@@ -1,5 +1,9 @@
+import * as bluebird from 'bluebird';
+
 import pg, { Fetch, FetchTable, Insert, JoinFactory, Table, Update, Where, WhereIn } from './index';
-import { GetPrices, GetProductByIDs } from './products';
+import { GetPrices } from './products';
+import { FetchSellers } from './sellers';
+import { FetchUsers } from './users';
 
 interface OrderItem {
     orderid: string;
@@ -129,16 +133,28 @@ export function GetTransactionOfWS(storecode: string) {
     })
     .then(orders => {
         const orderIDs = orders.map(order => order.orderid);
+        const usercodes = orders.map(order => order.usercode);
+        const storecodes = orders.map(order => order.storecode);
 
-        return Fetch<OrderItem>(
-            FetchOrderItemDetail([], [
-                WhereIn('orderid', orderIDs),
+        return bluebird.all([
+            Fetch<OrderItem>(
+                FetchOrderItemDetail([], [
+                    WhereIn('orderid', orderIDs),
+                ]),
+            ),
+            FetchUsers([
+                WhereIn('usercode', usercodes),
             ]),
-        )
-        .then(orderItems => {
+            FetchSellers([
+                WhereIn('storecode', storecodes),
+            ]),
+        ])
+        .then(([orderItems, users, stores]) => {
             return orders.map(order => {
                 return Object.assign({}, order, {
                     items: orderItems.filter(item => item.orderid === order.orderid),
+                    retailer: users.find(u => u.usercode.toString() === order.usercode),
+                    grosir: stores.find(s => s.storecode.toString() === order.storecode),
                 });
             });
         });
