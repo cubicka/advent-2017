@@ -102,19 +102,28 @@ export function GetTransaction(usercode: string) {
     })
     .then(orders => {
         const orderIDs = orders.map(order => order.orderid);
+        const usercodes = orders.map(order => order.usercode);
+        const storecodes = orders.map(order => order.storecode);
 
-        // return FetchOrderDetail([
-        //     WhereIn('orderid', orderIDs),
-        // ])
-        return Fetch<OrderItem>(
-            FetchOrderItemDetail([], [
-                WhereIn('orderid', orderIDs),
+        return bluebird.all([
+            Fetch<OrderItem>(
+                FetchOrderItemDetail([], [
+                    WhereIn('orderid', orderIDs),
+                ]),
+            ),
+            FetchUsers([
+                WhereIn('usercode', usercodes),
             ]),
-        )
-        .then(orderItems => {
+            FetchSellers([
+                WhereIn('storecode', storecodes),
+            ]),
+        ])
+        .then(([orderItems, users, stores]) => {
             return orders.map(order => {
                 return Object.assign({}, order, {
                     items: orderItems.filter(item => item.orderid === order.orderid),
+                    retailer: users.find(u => u.usercode.toString() === order.usercode),
+                    grosir: stores.find(s => s.storecode.toString() === order.storecode),
                 });
             });
         });
