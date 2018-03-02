@@ -156,7 +156,8 @@ export function GetProductByWord(storecode: string, word: string) {
     )
     .then(brands => {
         return GetProductByBrand(storecode, brands.map(b => b.brandcode));
-    });
+    })
+    .then(products => AddDetail(storecode, products));
 }
 
 // order_detail
