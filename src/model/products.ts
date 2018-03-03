@@ -3,7 +3,7 @@ import * as lodash from 'lodash';
 
 import pg, { Fetch, FetchTable, JoinFactory, Table, Where, WhereIn } from './index';
 
-interface Brand {
+export interface Brand {
     brandcode: string;
     brandname: string;
     id: number;
@@ -11,7 +11,7 @@ interface Brand {
     subcategoryname: string;
 }
 
-interface Category {
+export interface Category {
     categorycode: string;
     categoryname: string;
 }

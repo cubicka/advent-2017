@@ -4,6 +4,8 @@ import * as lodash from 'lodash';
 import * as bank from '../../raw/bank.json';
 import * as state from '../../raw/state.json';
 
+import { GenerateTransactionExcel } from '../../model/transactions';
+
 const cities = lodash.map(lodash.range(1, 35), id => {
     return require('../../raw/city/' + id.toString() + '.json');
 });
@@ -34,11 +36,19 @@ function Help(req: express.Request, res: express.Response, next: express.NextFun
     });
 }
 
+function Report(req: express.Request, res: express.Response, next: express.NextFunction) {
+    return GenerateTransactionExcel(res);
+    // .then(result => {
+    //     res.send({result});
+    // });
+}
+
 export default {
     get: [
         ['/bank', Bank],
         ['/state', State],
         ['/cities', City],
         ['/help', Help],
+        ['/report', Report],
     ],
 };
