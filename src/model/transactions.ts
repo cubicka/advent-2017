@@ -286,7 +286,7 @@ export function GenerateTransactionExcel(stream: express.Response) {
             const store = t.grosir.name;
             const picktime = SimplerTime(new Date(t.picktime));
             const createdate = SimplerTime(new Date(t.uploadtime));
-            const status = t.iscanceled ? 'Batal' : (t.isprint ? 'Printed' : 'Antri');
+            const status = t.iscanceled === '1' ? 'Batal' : (t.isprint === '1' ? 'Printed' : 'Antri');
 
             t.items.forEach(item => {
                 const categoryname = item.category.categoryname;
@@ -403,4 +403,122 @@ export function GenerateTransactionExcel(stream: express.Response) {
     //         throw new Error('Gagal mengirim report.');
     //     });
     // });
+}
+
+export function getMasterSKU(stream: express.Response) {
+    const fileName = 'report';
+    stream.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    stream.setHeader('Content-Disposition', 'attachment; filename=\'export_' + fileName + '.xlsx\'');
+
+    const workbook = new Excel.Workbook();
+
+    function SimplerTime(datetime: string) {
+        const d = new Date(datetime);
+        d.setHours(d.getHours() + 7);
+        const iso = d.toISOString();
+        return `${iso.slice(0, 10)} ${iso.slice(11, 16)} (WIB)`;
+    }
+
+    function FormatHarga(x: number) {
+        if (!x) {
+            return 0;
+        }
+        return x.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+    }
+
+    const sheet = workbook.addWorksheet('detail pesanan');
+    const columns = ['City', 'Date', 'OrderID', 'Store Name', 'User', 'Category Name',
+        'Brand Name', 'SKU Name', 'Qty', 'Price', 'Total', 'Pick Time', 'Create Date', 'Status'];
+    sheet.addRow(columns).commit();
+
+    return FetchOrderMaster([
+    ], {
+        sortBy: 'orderid',
+        sortOrder: 'desc',
+    })
+    .then(orders => {
+        const orderIDs = orders.map(order => order.orderid);
+        const usercodes = orders.map(order => order.usercode);
+        const storecodes = orders.map(order => order.storecode);
+
+        return bluebird.all([
+            Fetch<OrderItem>(
+                FetchOrderItemDetail([], [
+                    WhereIn('orderid', orderIDs),
+                ]),
+            ),
+            FetchUsers([
+                WhereIn('usercode', usercodes),
+            ]),
+            FetchSellers([
+                WhereIn('storecode', storecodes),
+            ]),
+        ])
+        .then(([orderItems, users, stores]) => {
+            const brandcodes = orderItems.map(item => item.brandcode);
+            const categorycodes = orderItems.map(item => item.categorycode);
+
+            return bluebird.all([
+                FetchBrand([
+                    WhereIn('brandcode', brandcodes),
+                ]),
+                FetchCategory([
+                    WhereIn('categorycode', categorycodes),
+                ]),
+            ])
+            .then(([brands, categories]) => {
+                return [ orderItems.map(item => {
+                    return Object.assign(item, {
+                        brand: brands.find(b => b.brandcode === item.brandcode),
+                        category: categories.find(c => c.categorycode === item.categorycode),
+                    });
+                }), users, stores];
+            });
+        })
+        .then(([orderItems, users, stores]) => {
+            return orders.map(order => {
+                return Object.assign({}, order, {
+                    items: orderItems.filter(item => item.orderid === order.orderid),
+                    retailer: users.find(u => u.usercode.toString() === order.usercode),
+                    grosir: stores.find(s => s.storecode.toString() === order.storecode),
+                });
+            });
+        });
+    })
+    .then(transactions => {
+        transactions.forEach(t => {
+            const columns = ['City', 'Date', 'OrderID', 'Store Name', 'User', 'Category Name',
+            'Brand Name', 'SKU Name', 'Qty', 'Price', 'Total', 'Pick Time', 'Create Date', 'Status'];
+
+            const city = t.retailer.City;
+            const date = SimplerTime(new Date(t.uploadtime));
+            const orderID = t.orderid;
+            const user = t.retailer.name;
+            const store = t.grosir.name;
+            const picktime = SimplerTime(new Date(t.picktime));
+            const createdate = SimplerTime(new Date(t.uploadtime));
+            const status = t.iscanceled ? 'Batal' : (t.isprint ? 'Printed' : 'Antri');
+
+            t.items.forEach(item => {
+                const categoryname = item.category.categoryname;
+                const brandname = item.brand.brandname;
+                const skuname = item.description;
+                const qty = item.pcsqty;
+                const price = parseFloat(item.price);
+                const total = item.pcsqty * parseFloat(item.price);
+
+                sheet.addRow([
+                    city, date, orderID, store, user, categoryname, brandname,
+                    skuname, qty, price, total, picktime, createdate, status,
+                ]).commit();
+            });
+        });
+
+        const tempFilePath = tempfile((new Date()).getTime().toString() + '.xlsx');
+        workbook.xlsx.writeFile(tempFilePath).then(() => {
+            stream.sendFile(tempFilePath, (err: any) => {
+                if (err) throw new Error('Gagal mengirim report.');
+            });
+        });
+    });
 }
