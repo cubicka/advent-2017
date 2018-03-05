@@ -450,10 +450,10 @@ export function generateMasterSKU(stream: express.Response, limit: number, offse
             sheet.addRow([
                 p.skucode,
                 p.description,
-                p.brandname,
+                p.brand,
                 p.fulldescription,
-                p.categoryname,
-                p.subcategoryname,
+                p.category,
+                p.subcategory,
                 p.barcode,
                 p.casesize,
                 p.weight,
