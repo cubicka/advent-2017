@@ -40,6 +40,7 @@ const FetchBrands = JoinFactory(
 
 const FetchCategories = FetchTable<Category>(Table.category);
 const FetchPrices = FetchTable<Price>(Table.prices);
+const FetchProducts = FetchTable<Product>(Table.sku);
 const FetchSubcategories = FetchTable<Brand>(Table.subcategory);
 
 function AddDetail(storecode: string, products: Product[]) {
@@ -158,6 +159,32 @@ export function GetProductByWord(storecode: string, word: string) {
         return GetProductByBrand(storecode, brands.map(b => b.brandcode));
     })
     .then(products => AddDetail(storecode, products));
+}
+
+export function GetAllMasterSKU(limit: number, offset: number) {
+    return FetchProducts([], { limit, sortBy: 'skucode', sortOrder: 'asc' })
+    .then(allProducts => {
+        return bluebird.all([
+            FetchBrands([]),
+            FetchCategories([]),
+            FetchSubcategories([]),
+        ])
+        .then(([ brands, categories, subcategories]) => {
+            return allProducts.map(p => {
+                return Object.assign(p, {
+                    category: (categories.find(c => c.categorycode === p.categorycode) || {
+                        categoryname: '',
+                    }).categoryname,
+                    subcategory: (subcategories.find(c => c.subcategorycode === p.subcategorycode) || {
+                        subcategoryname: '',
+                    }).subcategoryname,
+                    brand: (brands.find(b => b.brandcode === p.brandcode) || {
+                        brandname: '',
+                    }).brandname,
+                });
+            });
+        });
+    });
 }
 
 // order_detail

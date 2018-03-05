@@ -4,7 +4,7 @@ import express from 'express';
 import * as tempfile from 'tempfile';
 
 import pg, { Fetch, FetchTable, Insert, JoinFactory, Table, Update, Where, WhereIn } from './index';
-import { Brand, Category, GetPrices } from './products';
+import { Brand, Category, GetAllMasterSKU, GetPrices } from './products';
 import { FetchSellers } from './sellers';
 import { FetchUsers } from './users';
 
@@ -276,9 +276,6 @@ export function GenerateTransactionExcel(stream: express.Response) {
     })
     .then(transactions => {
         transactions.forEach(t => {
-            const columns = ['City', 'Date', 'OrderID', 'Store Name', 'User', 'Category Name',
-            'Brand Name', 'SKU Name', 'Qty', 'Price', 'Total', 'Pick Time', 'Create Date', 'Status'];
-
             const city = t.retailer.City;
             const date = SimplerTime(new Date(t.uploadtime));
             const orderID = t.orderid;
@@ -405,8 +402,8 @@ export function GenerateTransactionExcel(stream: express.Response) {
     // });
 }
 
-export function getMasterSKU(stream: express.Response) {
-    const fileName = 'report';
+export function generateMasterSKU(stream: express.Response, limit: number, offset: number) {
+    const fileName = 'master_sku';
     stream.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     stream.setHeader('Content-Disposition', 'attachment; filename=\'export_' + fileName + '.xlsx\'');
 
@@ -427,91 +424,35 @@ export function getMasterSKU(stream: express.Response) {
     }
 
     const sheet = workbook.addWorksheet('detail pesanan');
-    const columns = ['City', 'Date', 'OrderID', 'Store Name', 'User', 'Category Name',
-        'Brand Name', 'SKU Name', 'Qty', 'Price', 'Total', 'Pick Time', 'Create Date', 'Status'];
+    const columns = ['SKU Code', 'Nama', 'Brand', 'Deskripsi', 'Kategori', 'Sub Kategori', 'Barcode',
+    'Case Size', 'Weight'];
     sheet.addRow(columns).commit();
 
-    return FetchOrderMaster([
-    ], {
-        sortBy: 'orderid',
-        sortOrder: 'desc',
-    })
-    .then(orders => {
-        const orderIDs = orders.map(order => order.orderid);
-        const usercodes = orders.map(order => order.usercode);
-        const storecodes = orders.map(order => order.storecode);
-
-        return bluebird.all([
-            Fetch<OrderItem>(
-                FetchOrderItemDetail([], [
-                    WhereIn('orderid', orderIDs),
-                ]),
-            ),
-            FetchUsers([
-                WhereIn('usercode', usercodes),
-            ]),
-            FetchSellers([
-                WhereIn('storecode', storecodes),
-            ]),
-        ])
-        .then(([orderItems, users, stores]) => {
-            const brandcodes = orderItems.map(item => item.brandcode);
-            const categorycodes = orderItems.map(item => item.categorycode);
-
-            return bluebird.all([
-                FetchBrand([
-                    WhereIn('brandcode', brandcodes),
-                ]),
-                FetchCategory([
-                    WhereIn('categorycode', categorycodes),
-                ]),
-            ])
-            .then(([brands, categories]) => {
-                return [ orderItems.map(item => {
-                    return Object.assign(item, {
-                        brand: brands.find(b => b.brandcode === item.brandcode),
-                        category: categories.find(c => c.categorycode === item.categorycode),
-                    });
-                }), users, stores];
-            });
-        })
-        .then(([orderItems, users, stores]) => {
-            return orders.map(order => {
-                return Object.assign({}, order, {
-                    items: orderItems.filter(item => item.orderid === order.orderid),
-                    retailer: users.find(u => u.usercode.toString() === order.usercode),
-                    grosir: stores.find(s => s.storecode.toString() === order.storecode),
-                });
-            });
-        });
-    })
-    .then(transactions => {
-        transactions.forEach(t => {
-            const columns = ['City', 'Date', 'OrderID', 'Store Name', 'User', 'Category Name',
-            'Brand Name', 'SKU Name', 'Qty', 'Price', 'Total', 'Pick Time', 'Create Date', 'Status'];
-
-            const city = t.retailer.City;
-            const date = SimplerTime(new Date(t.uploadtime));
-            const orderID = t.orderid;
-            const user = t.retailer.name;
-            const store = t.grosir.name;
-            const picktime = SimplerTime(new Date(t.picktime));
-            const createdate = SimplerTime(new Date(t.uploadtime));
-            const status = t.iscanceled ? 'Batal' : (t.isprint ? 'Printed' : 'Antri');
-
-            t.items.forEach(item => {
-                const categoryname = item.category.categoryname;
-                const brandname = item.brand.brandname;
-                const skuname = item.description;
-                const qty = item.pcsqty;
-                const price = parseFloat(item.price);
-                const total = item.pcsqty * parseFloat(item.price);
-
-                sheet.addRow([
-                    city, date, orderID, store, user, categoryname, brandname,
-                    skuname, qty, price, total, picktime, createdate, status,
-                ]).commit();
-            });
+    return GetAllMasterSKU(limit, offset)
+    .then(products => {
+        // return products.map(p => [
+        //             p.skucode,
+        //             p.description,
+        //             p.brand,
+        //             p.fulldescription,
+        //             p.category,
+        //             p.subcategory,
+        //             p.barcode,
+        //             p.casesize,
+        //             p.weight,
+        //         ]);
+        products.forEach(p => {
+            sheet.addRow([
+                p.skucode,
+                p.description,
+                p.brandname,
+                p.fulldescription,
+                p.categoryname,
+                p.subcategoryname,
+                p.barcode,
+                p.casesize,
+                p.weight,
+            ]).commit();
         });
 
         const tempFilePath = tempfile((new Date()).getTime().toString() + '.xlsx');

@@ -5,8 +5,8 @@ export function ParseLimitOffset(req: express.Request, res: express.Response, ne
     const limit = parseInt(req.query.limit, 10) || 10;
     const offset = parseInt(req.query.offset, 10) || 0;
 
-    req.kulakan.params = req.kulakan.params || {};
-    Object.assign(req.kulakan.params, { limit, offset });
+    req.didi.params = req.didi.params || {};
+    Object.assign(req.didi.params, { limit, offset });
     next();
 }
 

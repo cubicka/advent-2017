@@ -4,7 +4,10 @@ import * as lodash from 'lodash';
 import * as bank from '../../raw/bank.json';
 import * as state from '../../raw/state.json';
 
-import { GenerateTransactionExcel } from '../../model/transactions';
+// import { GetAllMasterSKU } from '../../model/products';
+import { generateMasterSKU, GenerateTransactionExcel } from '../../model/transactions';
+
+import { ParseLimitOffset } from '../middleware/helper';
 
 const cities = lodash.map(lodash.range(1, 35), id => {
     return require('../../raw/city/' + id.toString() + '.json');
@@ -43,6 +46,13 @@ function Report(req: express.Request, res: express.Response, next: express.NextF
     // });
 }
 
+function SKU(req: express.Request, res: express.Response, next: express.NextFunction) {
+    return generateMasterSKU(res, req.didi.limit, req.didi.offset);
+    // .then(result => {
+    //     res.send({result});
+    // });
+}
+
 export default {
     get: [
         ['/bank', Bank],
@@ -50,5 +60,6 @@ export default {
         ['/cities', City],
         ['/help', Help],
         ['/report', Report],
+        ['/sku', ParseLimitOffset, SKU],
     ],
 };
