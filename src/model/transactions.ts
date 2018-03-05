@@ -216,7 +216,7 @@ export function GenerateTransactionExcel(stream: express.Response) {
     }
 
     const sheet = workbook.addWorksheet('detail pesanan');
-    const columns = ['City', 'Date', 'OrderID', 'Store Name', 'User', 'Category Name',
+    const columns = ['City', 'Date', 'Year', 'Month', 'Day', 'Hour', 'OrderID', 'Store Name', 'User', 'Category Name',
         'Brand Name', 'SKU Name', 'Qty', 'Price', 'Total', 'Pick Time', 'Create Date', 'Status'];
     sheet.addRow(columns).commit();
 
@@ -276,8 +276,13 @@ export function GenerateTransactionExcel(stream: express.Response) {
     })
     .then(transactions => {
         transactions.forEach(t => {
+            const d = new Date(t.uploadtime);
             const city = t.retailer.City;
-            const date = SimplerTime(new Date(t.uploadtime));
+            const date = SimplerTime(d);
+            const year = d.getFullYear();
+            const month = d.getMonth() + 1;
+            const day = d.getDay();
+            const time = d.toISOString().slice(11, 16);
             const orderID = t.orderid;
             const user = t.retailer.name;
             const store = t.grosir.name;
@@ -294,7 +299,7 @@ export function GenerateTransactionExcel(stream: express.Response) {
                 const total = item.pcsqty * parseFloat(item.price);
 
                 sheet.addRow([
-                    city, date, orderID, store, user, categoryname, brandname,
+                    city, date, year, month, day, time, orderID, store, user, categoryname, brandname,
                     skuname, qty, price, total, picktime, createdate, status,
                 ]).commit();
             });
