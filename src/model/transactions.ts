@@ -281,7 +281,7 @@ export function GenerateTransactionExcel(stream: express.Response) {
             const date = SimplerTime(d);
             const year = d.getFullYear();
             const month = d.getMonth() + 1;
-            const day = d.getDay();
+            const day = d.getDate();
             const time = d.toISOString().slice(11, 16);
             const orderID = t.orderid;
             const user = t.retailer.name;
